@@ -239,6 +239,7 @@ enum class ObjectKind {
     Number,
     String,
     Symbol,
+    Function,
 
     // Objects which internally used and user can't create these object.
     FuncPtr,
@@ -252,18 +253,35 @@ public:
     virtual std::string debug() const = 0;
 };
 
+class EnvException : public std::runtime_error {
+public:
+    EnvException(const std::string& msg) : std::runtime_error(msg) {}
+};
+
 // This use `Object` and `FuncPtr` use this, so this must be placed between `Object` and `FuncPtr`.
 class Env {
 private:
     std::map<std::string, std::shared_ptr<Object>> symtable;
+    std::shared_ptr<Env> outer;
 
 public:
+    Env() {
+        this->outer = nullptr;
+    }
+
+    Env(std::shared_ptr<Env> outer) {
+        this->outer = outer;
+    }
+
     std::shared_ptr<Object> get_obj(const std::string& sym) {
         try {
             return symtable.at(sym);
         } catch (std::out_of_range& _) {
-            std::cout << "no such symbol exist: " << sym << std::endl;
-            exit(1);
+            if (outer != nullptr) {
+                return outer->get_obj(sym);
+            } else {
+                throw EnvException("no such symbol exist: " + sym);
+            }
         }
     }
 
@@ -455,6 +473,54 @@ public:
 
     std::string debug() const override {
         return symbol;
+    }
+};
+
+class Function : public Object {
+private:
+    std::list<std::shared_ptr<Symbol>> args;
+    std::list<std::shared_ptr<Object>> body;
+
+public:
+    Function(std::list<std::shared_ptr<Symbol>> args, std::list<std::shared_ptr<Object>> body) {
+        this->args = args;
+        this->body = body;
+    }
+
+    std::list<std::shared_ptr<Symbol>>& get_args() {
+        return args;
+    }
+
+    std::list<std::shared_ptr<Object>>& get_body() {
+        return body;
+    }
+
+    ObjectKind kind() const override {
+        return ObjectKind::Function;
+    }
+
+    bool is_atom() const override {
+        return false;
+    }
+
+    std::string debug() const override {
+        std::ostringstream ss;
+        ss << "FUNCTION (";
+        for (auto it = args.begin(); it != args.end(); it++) {
+            if (++it == args.end()) {
+                it--;
+                ss << (*it)->debug();
+            } else {
+                it--;
+                ss << (*it)->debug() << " ";
+            }
+        }
+        ss << ")";
+        for (const auto& body : body) {
+            ss << " " << body->debug();
+        }
+        std::string s = ss.str();
+        return s.substr(0, s.size());
     }
 };
 
@@ -686,7 +752,7 @@ public:
     EvalException(const std::string& msg) : std::runtime_error(msg) {}
 };
 
-#define TAKE_ONE_ARG(name, args, a1) \
+#define TAKE_JUST_ONE_ARG(name, args, a1) \
     do { \
         if (args == nullptr) { \
             throw EvalException("too few arguments for" + std::string(name)); \
@@ -697,7 +763,7 @@ public:
         } \
     } while (0)
 
-#define TAKE_TWO_ARG(name, args, a1, a2) \
+#define TAKE_JUST_TWO_ARG(name, args, a1, a2) \
     do { \
         if (args == nullptr) { \
             throw EvalException("too few arguments for" + std::string(name)); \
@@ -712,7 +778,7 @@ public:
         } \
     } while (0)
 
-#define TAKE_THREE_ARG(name, args, a1, a2, a3) \
+#define TAKE_JUST_THREE_ARG(name, args, a1, a2, a3) \
     do { \
         if (args == nullptr) { \
             throw EvalException("too few arguments for" + std::string(name)); \
@@ -729,6 +795,63 @@ public:
         if (args->get_next()->get_next()->get_next() != nullptr) { \
             throw EvalException("too many arguments for" + std::string(name)); \
         } \
+    } while (0)
+
+#define EVAL_JUST_ONE_ARG(name, args, env, a1) \
+    do { \
+        TAKE_JUST_ONE_ARG(name, args, a1); \
+        a1 = eval(a1, env); \
+    } while (0)
+
+#define EVAL_JUST_TWO_ARG(name, args, env, a1, a2) \
+    do { \
+        TAKE_JUST_TWO_ARG(name, args, a1, a2); \
+        a1 = eval(a1, env); \
+        a2 = eval(a2, env); \
+    } while (0)
+
+#define EVAL_JUST_THREE_ARG(name, args, env, a1, a2, a3) \
+    do { \
+        TAKE_JUST_THREE_ARG(name, args, a1, a2, a3); \
+        a1 = eval(a1, env); \
+        a2 = eval(a2, env); \
+        a3 = eval(a3, env); \
+    } while (0) \
+
+#define TAKE_ONE_ARG(name, args, a1) \
+    do { \
+        if (args == nullptr) { \
+            throw EvalException("too few arguments for" + std::string(name)); \
+        } \
+        a1 = args->get_value(); \
+    } while (0)
+
+#define TAKE_TWO_ARG(name, args, a1, a2) \
+    do { \
+        if (args == nullptr) { \
+            throw EvalException("too few arguments for" + std::string(name)); \
+        } \
+        a1 = args->get_value(); \
+        if (args->get_next() == nullptr) { \
+            throw EvalException("too few arguments for" + std::string(name)); \
+        } \
+        a2 = args->get_next()->get_value(); \
+    } while (0)
+
+#define TAKE_THREE_ARG(name, args, a1, a2, a3) \
+    do { \
+        if (args == nullptr) { \
+            throw EvalException("too few arguments for" + std::string(name)); \
+        } \
+        a1 = args->get_value(); \
+        if (args->get_next() == nullptr) { \
+            throw EvalException("too few arguments for" + std::string(name)); \
+        } \
+        a2 = args->get_next()->get_value(); \
+        if (args->get_next()->get_next() == nullptr) { \
+            throw EvalException("too few arguments for" + std::string(name)); \
+        } \
+        a3 = args->get_next()->get_next()->get_value(); \
     } while (0)
 
 #define EVAL_ONE_ARG(name, args, env, a1) \
@@ -755,7 +878,11 @@ public:
 std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env);
 std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env);
 std::shared_ptr<Object> eval_symbol(const std::shared_ptr<Symbol>& symbol, Env& env);
-std::shared_ptr<Object> call(const std::string& name, const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> apply_func(
+    const std::shared_ptr<Function> func,
+    const std::shared_ptr<List> args,
+    Env& env
+);
 std::shared_ptr<Object> fn_quote(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_car(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_cdr(const std::shared_ptr<List> args, Env& env);
@@ -768,8 +895,14 @@ std::shared_ptr<Object> fn_lt_num(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_gt_num(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_le_num(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_ge_num(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_add_num(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_sub_num(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_mul_num(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_div_num(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_write(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_write_line(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env);
 
 std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
     switch (object->kind()) {
@@ -793,35 +926,73 @@ std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env) {
     auto head = list->get_value();
     if (head->kind() == ObjectKind::Symbol) {
         auto name = std::dynamic_pointer_cast<Symbol>(head)->get_symbol();
-        return call(name, list->get_next(), env);
+        auto obj = env.get_obj(name);
+        if (obj->kind() == ObjectKind::FuncPtr) {
+            auto func = std::dynamic_pointer_cast<FuncPtr>(obj);
+            return func->get_func()(list->get_next(), env);
+        } else if (obj->kind() == ObjectKind::Function) {
+            return apply_func(std::dynamic_pointer_cast<Function>(obj), list->get_next(), env);
+        }
     } else {
-        throw EvalException("first object of list must be symbol");
+        auto obj = eval(head, env);
+        if (obj->kind() != ObjectKind::Function) {
+            throw EvalException("first object of list must be function or symbol");
+        } else {
+            auto func = std::dynamic_pointer_cast<Function>(obj);
+            return apply_func(func, list->get_next(), env);
+        }
     }
+    return GLOBAL_NIL; // TODO: If I remove this statement, compiler emit waring.
+}
+
+std::shared_ptr<Object> apply_func(
+    const std::shared_ptr<Function> func,
+    const std::shared_ptr<List> args,
+    Env& env
+) {
+    std::list<std::shared_ptr<Object>> given_args;
+    auto head = args;
+    while (head != nullptr) {
+        given_args.push_back(head->get_value());
+        head = head->get_next();
+    }
+
+    Env temp_env(env);
+    if (given_args.size() != func->get_args().size()) {
+        std::ostringstream ss;
+        ss << "different number of argument to function: expect " << func->get_args().size();
+        ss << ", but got " << given_args.size();
+        throw EvalException(ss.str());
+    } else {
+        auto syms = func->get_args().begin();
+        auto args = given_args.begin();
+        while (syms != func->get_args().end() || args != given_args.end()) {
+            temp_env.set_obj((*syms)->get_symbol(), *args);
+            syms++; args++;
+        }
+    }
+
+    std::shared_ptr<Object> result = GLOBAL_NIL;
+    for (auto& body : func->get_body()) {
+        result = eval(body, temp_env);
+    }
+    return result;
 }
 
 std::shared_ptr<Object> eval_symbol(const std::shared_ptr<Symbol>& symbol, Env& env) {
     return env.get_obj(symbol->get_symbol());
 }
 
-std::shared_ptr<Object> call(const std::string& name, const std::shared_ptr<List> args, Env& env) {
-    auto obj = env.get_obj(name);
-    if (obj->kind() == ObjectKind::FuncPtr) {
-        return std::dynamic_pointer_cast<FuncPtr>(obj)->get_func()(args, env);
-    } else {
-        throw EvalException(name + " is not a function");
-    }
-}
-
 std::shared_ptr<Object> fn_quote(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
-    TAKE_ONE_ARG("quote", args, a1);
+    TAKE_JUST_ONE_ARG("quote", args, a1);
 
     return a1;
 }
 
 std::shared_ptr<Object> fn_car(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
-    EVAL_ONE_ARG("car", args, env, a1);
+    EVAL_JUST_ONE_ARG("car", args, env, a1);
 
     if (a1->kind() == ObjectKind::List) {
         auto list = std::dynamic_pointer_cast<List>(a1);
@@ -835,7 +1006,7 @@ std::shared_ptr<Object> fn_car(const std::shared_ptr<List> args, Env& env) {
 
 std::shared_ptr<Object> fn_cdr(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
-    EVAL_ONE_ARG("cdr", args, env, a1);
+    EVAL_JUST_ONE_ARG("cdr", args, env, a1);
 
     if (a1->kind() == ObjectKind::List) {
         auto list = std::dynamic_pointer_cast<List>(a1);
@@ -853,7 +1024,7 @@ std::shared_ptr<Object> fn_cdr(const std::shared_ptr<List> args, Env& env) {
 
 std::shared_ptr<Object> fn_cons(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
-    EVAL_TWO_ARG("cons", args, env, a1, a2);
+    EVAL_JUST_TWO_ARG("cons", args, env, a1, a2);
 
     if (a2->kind() == ObjectKind::List) {
         return std::make_shared<List>(a1, std::dynamic_pointer_cast<List>(a2));
@@ -866,7 +1037,7 @@ std::shared_ptr<Object> fn_cons(const std::shared_ptr<List> args, Env& env) {
 
 std::shared_ptr<Object> fn_atom(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
-    EVAL_ONE_ARG("atom", args, env, a1);
+    EVAL_JUST_ONE_ARG("atom", args, env, a1);
 
     if (a1->is_atom()) {
         return GLOBAL_T;
@@ -877,7 +1048,7 @@ std::shared_ptr<Object> fn_atom(const std::shared_ptr<List> args, Env& env) {
 
 std::shared_ptr<Object> fn_if(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2, a3;
-    TAKE_THREE_ARG("if", args, a1, a2, a3);
+    TAKE_JUST_THREE_ARG("if", args, a1, a2, a3);
 
     if (eval(a1, env)->kind() != ObjectKind::NIL) {
         return eval(a2, env);
@@ -886,7 +1057,7 @@ std::shared_ptr<Object> fn_if(const std::shared_ptr<List> args, Env& env) {
     }
 }
 
-#define APPLY_OP_TO_NUMS(a1, a2, op) \
+#define APPLY_COMP_OP_TO_NUMS(a1, a2, op) \
     do { \
         if (a1->kind() == ObjectKind::Integer && a2->kind() == ObjectKind::Integer) { \
             int l = std::dynamic_pointer_cast<Integer>(a1)->get_integer(); \
@@ -905,44 +1076,123 @@ std::shared_ptr<Object> fn_if(const std::shared_ptr<List> args, Env& env) {
             double r = std::dynamic_pointer_cast<Number>(a2)->get_number(); \
             if (l op r) { return GLOBAL_T; } else { return GLOBAL_NIL; } \
         } else { \
-            throw EvalException(std::string(#op) + "cannot be applied to non-numeric object"); \
+            throw EvalException(std::string(#op) + " cannot be applied to non-numeric object"); \
+        } \
+    } while (0)
+
+#define APPLY_ARITH_OP_TO_NUMS(a1, a2, a3, op) \
+    do { \
+        if (a1->kind() == ObjectKind::Integer && a2->kind() == ObjectKind::Integer) { \
+            int l = std::dynamic_pointer_cast<Integer>(a1)->get_integer(); \
+            int r = std::dynamic_pointer_cast<Integer>(a2)->get_integer(); \
+            a3 = std::make_shared<Integer>(l op r); \
+        } else if (a1->kind() == ObjectKind::Integer && a2->kind() == ObjectKind::Number) { \
+            double l = std::dynamic_pointer_cast<Integer>(a1)->get_integer(); \
+            double r = std::dynamic_pointer_cast<Number>(a2)->get_number(); \
+            a3 = std::make_shared<Number>(l op r); \
+        } else if (a1->kind() == ObjectKind::Number && a2->kind() == ObjectKind::Integer) { \
+            double l = std::dynamic_pointer_cast<Number>(a1)->get_number(); \
+            double r = std::dynamic_pointer_cast<Integer>(a2)->get_integer(); \
+            a3 = std::make_shared<Number>(l op r); \
+        } else if (a1->kind() == ObjectKind::Number && a2->kind() == ObjectKind::Number) { \
+            double l = std::dynamic_pointer_cast<Number>(a1)->get_number(); \
+            double r = std::dynamic_pointer_cast<Number>(a2)->get_number(); \
+            a3 = std::make_shared<Number>(l op r); \
+        } else { \
+            throw EvalException(std::string(#op) + " cannot be applied to non-numeric object"); \
         } \
     } while (0)
 
 std::shared_ptr<Object> fn_eq_num(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
-    EVAL_TWO_ARG("=", args, env, a1, a2);
-    APPLY_OP_TO_NUMS(a1, a2, ==);
+    EVAL_JUST_TWO_ARG("=", args, env, a1, a2);
+    APPLY_COMP_OP_TO_NUMS(a1, a2, ==);
 }
 
 std::shared_ptr<Object> fn_ne_num(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
-    EVAL_TWO_ARG("=", args, env, a1, a2);
-    APPLY_OP_TO_NUMS(a1, a2, !=);
+    EVAL_JUST_TWO_ARG("=", args, env, a1, a2);
+    APPLY_COMP_OP_TO_NUMS(a1, a2, !=);
 }
 
 std::shared_ptr<Object> fn_lt_num(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
-    EVAL_TWO_ARG("=", args, env, a1, a2);
-    APPLY_OP_TO_NUMS(a1, a2, <);
+    EVAL_JUST_TWO_ARG("=", args, env, a1, a2);
+    APPLY_COMP_OP_TO_NUMS(a1, a2, <);
 }
 
 std::shared_ptr<Object> fn_gt_num(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
-    EVAL_TWO_ARG("=", args, env, a1, a2);
-    APPLY_OP_TO_NUMS(a1, a2, >);
+    EVAL_JUST_TWO_ARG("=", args, env, a1, a2);
+    APPLY_COMP_OP_TO_NUMS(a1, a2, >);
 }
 
 std::shared_ptr<Object> fn_le_num(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
-    EVAL_TWO_ARG("=", args, env, a1, a2);
-    APPLY_OP_TO_NUMS(a1, a2, <=);
+    EVAL_JUST_TWO_ARG("=", args, env, a1, a2);
+    APPLY_COMP_OP_TO_NUMS(a1, a2, <=);
 }
 
 std::shared_ptr<Object> fn_ge_num(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
-    EVAL_TWO_ARG("=", args, env, a1, a2);
-    APPLY_OP_TO_NUMS(a1, a2, >=);
+    EVAL_JUST_TWO_ARG("=", args, env, a1, a2);
+    APPLY_COMP_OP_TO_NUMS(a1, a2, >=);
+}
+
+std::shared_ptr<Object> fn_add_num(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1, a2, acc;
+    EVAL_TWO_ARG("+", args, env, a1, a2);
+    APPLY_ARITH_OP_TO_NUMS(a1, a2, acc, +);
+    auto head = args->get_next()->get_next();
+    while (head != nullptr) {
+        std::shared_ptr<Object> a;
+        EVAL_ONE_ARG("+", head, env, a);
+        APPLY_ARITH_OP_TO_NUMS(a, acc, acc, +);
+        head = head->get_next();
+    }
+    return acc;
+}
+
+std::shared_ptr<Object> fn_sub_num(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1, a2, acc;
+    EVAL_TWO_ARG("-", args, env, a1, a2);
+    APPLY_ARITH_OP_TO_NUMS(a1, a2, acc, -);
+    auto head = args->get_next()->get_next();
+    while (head != nullptr) {
+        std::shared_ptr<Object> a;
+        EVAL_ONE_ARG("-", head, env, a);
+        APPLY_ARITH_OP_TO_NUMS(a, acc, acc, -);
+        head = head->get_next();
+    }
+    return acc;
+}
+
+std::shared_ptr<Object> fn_mul_num(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1, a2, acc;
+    EVAL_TWO_ARG("*", args, env, a1, a2);
+    APPLY_ARITH_OP_TO_NUMS(a1, a2, acc, *);
+    auto head = args->get_next()->get_next();
+    while (head != nullptr) {
+        std::shared_ptr<Object> a;
+        EVAL_ONE_ARG("*", head, env, a);
+        APPLY_ARITH_OP_TO_NUMS(a, acc, acc, *);
+        head = head->get_next();
+    }
+    return acc;
+}
+
+std::shared_ptr<Object> fn_div_num(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1, a2, acc;
+    EVAL_TWO_ARG("/", args, env, a1, a2);
+    APPLY_ARITH_OP_TO_NUMS(a1, a2, acc, /);
+    auto head = args->get_next()->get_next();
+    while (head != nullptr) {
+        std::shared_ptr<Object> a;
+        EVAL_ONE_ARG("/", head, env, a);
+        APPLY_ARITH_OP_TO_NUMS(a, acc, acc, /);
+        head = head->get_next();
+    }
+    return acc;
 }
 
 std::string remove_tail_zeros(const std::string& s) {
@@ -953,7 +1203,7 @@ std::string remove_tail_zeros(const std::string& s) {
 
 std::shared_ptr<Object> fn_write(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
-    EVAL_ONE_ARG("write", args, env, a1);
+    EVAL_JUST_ONE_ARG("write", args, env, a1);
     if (a1->kind() == ObjectKind::String) {
         std::cout << '"' << std::dynamic_pointer_cast<String>(a1)->get_string() << '"';
     } else if (a1->kind() == ObjectKind::Integer) {
@@ -969,7 +1219,7 @@ std::shared_ptr<Object> fn_write(const std::shared_ptr<List> args, Env& env) {
 
 std::shared_ptr<Object> fn_write_line(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
-    EVAL_ONE_ARG("write", args, env, a1);
+    EVAL_JUST_ONE_ARG("write", args, env, a1);
     if (a1->kind() == ObjectKind::String) {
         std::cout << '"' << std::dynamic_pointer_cast<String>(a1)->get_string() << '"' << std::endl;
     } else if (a1->kind() == ObjectKind::Integer) {
@@ -981,6 +1231,58 @@ std::shared_ptr<Object> fn_write_line(const std::shared_ptr<List> args, Env& env
         throw EvalException("write-line can only accpet string, integer or number");
     }
     return a1;
+}
+
+std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1;
+    TAKE_ONE_ARG("lambda", args, a1);
+
+    if (a1->kind() == ObjectKind::List) {
+        std::list<std::shared_ptr<Symbol>> lambda_args = {};
+        auto head = std::dynamic_pointer_cast<List>(a1);
+        while (head != nullptr) {
+            auto obj = head->get_value();
+            if (obj->kind() != ObjectKind::Symbol) {
+                throw EvalException("list elements of lambda must be symbol");
+            } else {
+                lambda_args.push_back(std::dynamic_pointer_cast<Symbol>(obj));
+                head = head->get_next();
+            }
+        }
+
+        std::list<std::shared_ptr<Object>> lambda_body = {};
+        auto body_head = args->get_next();
+        while (body_head != nullptr) {
+            lambda_body.push_back(body_head->get_value());
+            body_head = body_head->get_next();
+        }
+
+        return std::make_shared<Function>(lambda_args, lambda_body);
+    } else if (a1->kind() == ObjectKind::NIL) {
+        std::list<std::shared_ptr<Object>> lambda_body = {};
+        auto body_head = args->get_next();
+        while (body_head != nullptr) {
+            lambda_body.push_back(body_head->get_value());
+            body_head = body_head->get_next();
+        }
+
+        return std::make_shared<Function>(std::list<std::shared_ptr<Symbol>>(), lambda_body);
+    } else {
+        throw EvalException("first argument of lambda must be list");
+    }
+
+}
+
+std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1, a2;
+    TAKE_JUST_TWO_ARG("set", args, a1, a2);
+
+    if (a1->kind() != ObjectKind::Symbol) {
+        throw EvalException("first argument of set must be symbol");
+    }
+    auto name = std::dynamic_pointer_cast<Symbol>(a1)->get_symbol();
+    env.set_obj(name, eval(a2, env));
+    return a2;
 }
 
 Env default_env() {
@@ -997,8 +1299,14 @@ Env default_env() {
     env.set_obj(">", std::make_shared<FuncPtr>(fn_gt_num));
     env.set_obj("<=", std::make_shared<FuncPtr>(fn_le_num));
     env.set_obj(">=", std::make_shared<FuncPtr>(fn_ge_num));
+    env.set_obj("+", std::make_shared<FuncPtr>(fn_add_num));
+    env.set_obj("-", std::make_shared<FuncPtr>(fn_sub_num));
+    env.set_obj("*", std::make_shared<FuncPtr>(fn_mul_num));
+    env.set_obj("/", std::make_shared<FuncPtr>(fn_div_num));
     env.set_obj("write", std::make_shared<FuncPtr>(fn_write));
     env.set_obj("write-line", std::make_shared<FuncPtr>(fn_write_line));
+    env.set_obj("lambda", std::make_shared<FuncPtr>(fn_lambda));
+    env.set_obj("set", std::make_shared<FuncPtr>(fn_set));
     env.set_obj("T", GLOBAL_T);
     env.set_obj("NIL", GLOBAL_NIL);
     return env;
