@@ -908,45 +908,45 @@ public:
 #define TAKE_JUST_ONE_ARG(name, args, a1) \
     do { \
         if (args == nullptr) { \
-            throw EvalException("too few arguments for" + std::string(name)); \
+            throw EvalException("too few arguments for " + std::string(name)); \
         } \
         a1 = args->get_value(); \
         if (args->get_next() != nullptr) { \
-            throw EvalException("too many arguments for" + std::string(name)); \
+            throw EvalException("too many arguments for " + std::string(name)); \
         } \
     } while (0)
 
 #define TAKE_JUST_TWO_ARG(name, args, a1, a2) \
     do { \
         if (args == nullptr) { \
-            throw EvalException("too few arguments for" + std::string(name)); \
+            throw EvalException("too few arguments for " + std::string(name)); \
         } \
         a1 = args->get_value(); \
         if (args->get_next() == nullptr) { \
-            throw EvalException("too few arguments for" + std::string(name)); \
+            throw EvalException("too few arguments for " + std::string(name)); \
         } \
         a2 = args->get_next()->get_value(); \
         if (args->get_next()->get_next() != nullptr) { \
-            throw EvalException("too many arguments for" + std::string(name)); \
+            throw EvalException("too many arguments for " + std::string(name)); \
         } \
     } while (0)
 
 #define TAKE_JUST_THREE_ARG(name, args, a1, a2, a3) \
     do { \
         if (args == nullptr) { \
-            throw EvalException("too few arguments for" + std::string(name)); \
+            throw EvalException("too few arguments for " + std::string(name)); \
         } \
         a1 = args->get_value(); \
         if (args->get_next() == nullptr) { \
-            throw EvalException("too few arguments for" + std::string(name)); \
+            throw EvalException("too few arguments for " + std::string(name)); \
         } \
         a2 = args->get_next()->get_value(); \
         if (args->get_next()->get_next() == nullptr) { \
-            throw EvalException("too few arguments for" + std::string(name)); \
+            throw EvalException("too few arguments for " + std::string(name)); \
         } \
         a3 = args->get_next()->get_next()->get_value(); \
         if (args->get_next()->get_next()->get_next() != nullptr) { \
-            throw EvalException("too many arguments for" + std::string(name)); \
+            throw EvalException("too many arguments for " + std::string(name)); \
         } \
     } while (0)
 
@@ -974,7 +974,7 @@ public:
 #define TAKE_ONE_ARG(name, args, a1) \
     do { \
         if (args == nullptr) { \
-            throw EvalException("too few arguments for" + std::string(name)); \
+            throw EvalException("too few arguments for " + std::string(name)); \
         } \
         a1 = args->get_value(); \
     } while (0)
@@ -982,11 +982,11 @@ public:
 #define TAKE_TWO_ARG(name, args, a1, a2) \
     do { \
         if (args == nullptr) { \
-            throw EvalException("too few arguments for" + std::string(name)); \
+            throw EvalException("too few arguments for " + std::string(name)); \
         } \
         a1 = args->get_value(); \
         if (args->get_next() == nullptr) { \
-            throw EvalException("too few arguments for" + std::string(name)); \
+            throw EvalException("too few arguments for " + std::string(name)); \
         } \
         a2 = args->get_next()->get_value(); \
     } while (0)
@@ -994,15 +994,15 @@ public:
 #define TAKE_THREE_ARG(name, args, a1, a2, a3) \
     do { \
         if (args == nullptr) { \
-            throw EvalException("too few arguments for" + std::string(name)); \
+            throw EvalException("too few arguments for " + std::string(name)); \
         } \
         a1 = args->get_value(); \
         if (args->get_next() == nullptr) { \
-            throw EvalException("too few arguments for" + std::string(name)); \
+            throw EvalException("too few arguments for " + std::string(name)); \
         } \
         a2 = args->get_next()->get_value(); \
         if (args->get_next()->get_next() == nullptr) { \
-            throw EvalException("too few arguments for" + std::string(name)); \
+            throw EvalException("too few arguments for " + std::string(name)); \
         } \
         a3 = args->get_next()->get_next()->get_value(); \
     } while (0)
@@ -1092,6 +1092,8 @@ std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_setq(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_debug(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_debugq(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_defun(const std::shared_ptr<List> args, Env& env);
@@ -1701,10 +1703,10 @@ std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env) {
 
 std::shared_ptr<Object> fn_setq(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
-    TAKE_JUST_TWO_ARG("set", args, a1, a2);
+    TAKE_JUST_TWO_ARG("setq", args, a1, a2);
 
     if (a1->kind() != ObjectKind::Symbol) {
-        throw EvalException("first argument of set must have symbol");
+        throw EvalException("first argument of setq must be symbol");
     }
     auto name = std::dynamic_pointer_cast<Symbol>(a1)->get_symbol();
     env.set_obj(name, eval(a2, env));
@@ -1733,6 +1735,18 @@ std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& 
     } else {
         throw EvalException("given object is not a number");
     }
+}
+
+std::shared_ptr<Object> fn_debug(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1;
+    EVAL_JUST_ONE_ARG("num-to-string", args, env, a1);
+    return std::make_shared<String>(a1->debug());
+}
+
+std::shared_ptr<Object> fn_debugq(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1;
+    TAKE_JUST_ONE_ARG("num-to-string", args, a1);
+    return std::make_shared<String>(a1->debug());
 }
 
 std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env) {
@@ -1885,6 +1899,8 @@ Env default_env() {
     env.set_obj("setq", std::make_shared<FuncPtr>(fn_setq));
     env.set_obj("int-to-string", std::make_shared<FuncPtr>(fn_int_to_string));
     env.set_obj("num-to-string", std::make_shared<FuncPtr>(fn_num_to_string));
+    env.set_obj("debug", std::make_shared<FuncPtr>(fn_debug));
+    env.set_obj("debugq", std::make_shared<FuncPtr>(fn_debugq));
     env.set_obj("type-of", std::make_shared<FuncPtr>(fn_type_of));
     env.set_obj("concat", std::make_shared<FuncPtr>(fn_concat));
     env.set_obj("defun", std::make_shared<FuncPtr>(fn_defun));
