@@ -1007,6 +1007,7 @@ std::shared_ptr<Object> fn_read_int(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_read_num(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_setq(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env);
@@ -1498,10 +1499,22 @@ std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env& env) {
 
 std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
+    EVAL_JUST_TWO_ARG("set", args, env, a1, a2);
+
+    if (a1->kind() != ObjectKind::Symbol) {
+        throw EvalException("first argument of set must have symbol");
+    }
+    auto name = std::dynamic_pointer_cast<Symbol>(a1)->get_symbol();
+    env.set_obj(name, a2);
+    return a2;
+}
+
+std::shared_ptr<Object> fn_setq(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1, a2;
     TAKE_JUST_TWO_ARG("set", args, a1, a2);
 
     if (a1->kind() != ObjectKind::Symbol) {
-        throw EvalException("first argument of set must be symbol");
+        throw EvalException("first argument of set must have symbol");
     }
     auto name = std::dynamic_pointer_cast<Symbol>(a1)->get_symbol();
     env.set_obj(name, eval(a2, env));
@@ -1510,7 +1523,7 @@ std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env) {
 
 std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
-    EVAL_JUST_ONE_ARG("set", args, env, a1);
+    EVAL_JUST_ONE_ARG("int-to-string", args, env, a1);
 
     if (a1->kind() == ObjectKind::Integer) {
         auto integer = std::dynamic_pointer_cast<Integer>(a1)->get_integer();
@@ -1522,7 +1535,7 @@ std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& 
 
 std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
-    EVAL_JUST_ONE_ARG("set", args, env, a1);
+    EVAL_JUST_ONE_ARG("num-to-string", args, env, a1);
 
     if (a1->kind() == ObjectKind::Number) {
         auto number = std::dynamic_pointer_cast<Number>(a1)->get_number();
@@ -1534,7 +1547,7 @@ std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& 
 
 std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
-    EVAL_JUST_ONE_ARG("set", args, env, a1);
+    EVAL_JUST_ONE_ARG("type-of", args, env, a1);
 
     switch (a1->kind()) {
         case ObjectKind::List:
@@ -1616,6 +1629,7 @@ Env default_env() {
     env.set_obj("read-num", std::make_shared<FuncPtr>(fn_read_num));
     env.set_obj("lambda", std::make_shared<FuncPtr>(fn_lambda));
     env.set_obj("set", std::make_shared<FuncPtr>(fn_set));
+    env.set_obj("setq", std::make_shared<FuncPtr>(fn_setq));
     env.set_obj("int-to-string", std::make_shared<FuncPtr>(fn_int_to_string));
     env.set_obj("num-to-string", std::make_shared<FuncPtr>(fn_num_to_string));
     env.set_obj("type-of", std::make_shared<FuncPtr>(fn_type_of));
@@ -1662,9 +1676,9 @@ int main(int argc, char *argv[]) {
         interpreter(env);
     } else {
         run("(princ \"lhs: \") \
-             (set n (read-int)) \
+             (setq n (read-int)) \
              (princ \"rhs: \") \
-             (set m (read-int)) \
+             (setq m (read-int)) \
              (princ \"lhs + rhs = \") \
              (write-line (int-to-string (+ n m))) \
             ", env);
