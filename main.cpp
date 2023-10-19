@@ -1002,14 +1002,15 @@ std::shared_ptr<Object> fn_write_line(const std::shared_ptr<List> args, Env& env
 std::shared_ptr<Object> fn_print(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_prin1(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_princ(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_reads(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_readi(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_readn(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_read_str(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_read_int(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_read_num(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env& env);
 
 std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
     switch (object->kind()) {
@@ -1416,7 +1417,7 @@ std::shared_ptr<Object> fn_princ(const std::shared_ptr<List> args, Env& env) {
     return a1;
 }
 
-std::shared_ptr<Object> fn_reads(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_read_str(const std::shared_ptr<List> args, Env& env) {
     if (args != nullptr) {
         throw EvalException("too many arguments for reads");
     }
@@ -1429,7 +1430,7 @@ std::shared_ptr<Object> fn_reads(const std::shared_ptr<List> args, Env& env) {
     }
 }
 
-std::shared_ptr<Object> fn_readi(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_read_int(const std::shared_ptr<List> args, Env& env) {
     if (args != nullptr) {
         throw EvalException("too many arguments for readi");
     }
@@ -1442,7 +1443,7 @@ std::shared_ptr<Object> fn_readi(const std::shared_ptr<List> args, Env& env) {
     }
 }
 
-std::shared_ptr<Object> fn_readn(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_read_num(const std::shared_ptr<List> args, Env& env) {
     if (args != nullptr) {
         throw EvalException("too many arguments for readn");
     }
@@ -1563,6 +1564,30 @@ std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env) {
     }
 }
 
+std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env& env) {
+    std::string acc;
+    std::shared_ptr<Object> a1, a2;
+    EVAL_TWO_ARG("concat", args, env, a1, a2);
+    if (a1->kind() == ObjectKind::String && a2->kind() == ObjectKind::String) {
+        acc = std::dynamic_pointer_cast<String>(a1)->get_string() +
+              std::dynamic_pointer_cast<String>(a2)->get_string();
+    } else {
+        throw EvalException("arguments of concat must be string");
+    }
+    auto head = args->get_next()->get_next();
+    while (head != nullptr) {
+        std::shared_ptr<Object> a;
+        EVAL_ONE_ARG("concat", head, env, a);
+        if (a->kind() == ObjectKind::String) {
+            acc += std::dynamic_pointer_cast<String>(a)->get_string();
+        } else {
+            throw EvalException("arguments of concat must be string");
+        }
+        head = head->get_next();
+    }
+    return std::make_shared<String>(acc);
+}
+
 Env default_env() {
     Env env;
     env.set_obj("quote", std::make_shared<FuncPtr>(fn_quote));
@@ -1586,14 +1611,15 @@ Env default_env() {
     env.set_obj("print", std::make_shared<FuncPtr>(fn_print));
     env.set_obj("prin1", std::make_shared<FuncPtr>(fn_prin1));
     env.set_obj("princ", std::make_shared<FuncPtr>(fn_princ));
-    env.set_obj("reads", std::make_shared<FuncPtr>(fn_reads));
-    env.set_obj("readi", std::make_shared<FuncPtr>(fn_readi));
-    env.set_obj("readn", std::make_shared<FuncPtr>(fn_readn));
+    env.set_obj("read-str", std::make_shared<FuncPtr>(fn_read_str));
+    env.set_obj("read-int", std::make_shared<FuncPtr>(fn_read_int));
+    env.set_obj("read-num", std::make_shared<FuncPtr>(fn_read_num));
     env.set_obj("lambda", std::make_shared<FuncPtr>(fn_lambda));
     env.set_obj("set", std::make_shared<FuncPtr>(fn_set));
     env.set_obj("int-to-string", std::make_shared<FuncPtr>(fn_int_to_string));
     env.set_obj("num-to-string", std::make_shared<FuncPtr>(fn_num_to_string));
     env.set_obj("type-of", std::make_shared<FuncPtr>(fn_type_of));
+    env.set_obj("concat", std::make_shared<FuncPtr>(fn_concat));
     env.set_obj("T", GLOBAL_T);
     env.set_obj("NIL", GLOBAL_NIL);
     return env;
@@ -1636,9 +1662,9 @@ int main(int argc, char *argv[]) {
         interpreter(env);
     } else {
         run("(princ \"lhs: \") \
-             (set n (readi)) \
+             (set n (read-int)) \
              (princ \"rhs: \") \
-             (set m (readi)) \
+             (set m (read-int)) \
              (princ \"lhs + rhs = \") \
              (write-line (int-to-string (+ n m))) \
             ", env);
