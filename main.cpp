@@ -1739,13 +1739,13 @@ std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& 
 
 std::shared_ptr<Object> fn_debug(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
-    EVAL_JUST_ONE_ARG("num-to-string", args, env, a1);
+    EVAL_JUST_ONE_ARG("debug", args, env, a1);
     return std::make_shared<String>(a1->debug());
 }
 
 std::shared_ptr<Object> fn_debugq(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
-    TAKE_JUST_ONE_ARG("num-to-string", args, a1);
+    TAKE_JUST_ONE_ARG("debugq", args, a1);
     return std::make_shared<String>(a1->debug());
 }
 
