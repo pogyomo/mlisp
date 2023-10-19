@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cctype>
 #include <cstdlib>
+#include <cstring>
 #include <functional>
 #include <iostream>
 #include <istream>
@@ -901,8 +902,17 @@ std::shared_ptr<Object> fn_mul_num(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_div_num(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_write(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_write_line(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_print(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_prin1(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_princ(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_reads(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_readi(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_readn(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env);
 
 std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
     switch (object->kind()) {
@@ -1195,12 +1205,6 @@ std::shared_ptr<Object> fn_div_num(const std::shared_ptr<List> args, Env& env) {
     return acc;
 }
 
-std::string remove_tail_zeros(const std::string& s) {
-    auto it = s.rend();
-    while (*it == '0' && *(it + 1) != '.') { it++; }
-    return std::string(s.begin(), it.base());
-}
-
 std::shared_ptr<Object> fn_write(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("write", args, env, a1);
@@ -1209,8 +1213,7 @@ std::shared_ptr<Object> fn_write(const std::shared_ptr<List> args, Env& env) {
     } else if (a1->kind() == ObjectKind::Integer) {
         std::cout << std::dynamic_pointer_cast<Integer>(a1)->get_integer();
     } else if (a1->kind() == ObjectKind::Number) {
-        std::string s = std::to_string(std::dynamic_pointer_cast<Number>(a1)->get_number());
-        std::cout << remove_tail_zeros(s);
+        std::cout << std::to_string(std::dynamic_pointer_cast<Number>(a1)->get_number());
     } else {
         throw EvalException("write can only accpet string, integer or number");
     }
@@ -1219,18 +1222,97 @@ std::shared_ptr<Object> fn_write(const std::shared_ptr<List> args, Env& env) {
 
 std::shared_ptr<Object> fn_write_line(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
-    EVAL_JUST_ONE_ARG("write", args, env, a1);
+    EVAL_JUST_ONE_ARG("write-line", args, env, a1);
     if (a1->kind() == ObjectKind::String) {
-        std::cout << '"' << std::dynamic_pointer_cast<String>(a1)->get_string() << '"' << std::endl;
-    } else if (a1->kind() == ObjectKind::Integer) {
-        std::cout << std::dynamic_pointer_cast<Integer>(a1)->get_integer() << std::endl;
-    } else if (a1->kind() == ObjectKind::Number) {
-        std::string s = std::to_string(std::dynamic_pointer_cast<Number>(a1)->get_number());
-        std::cout << remove_tail_zeros(s) << std::endl;
+        std::cout << std::dynamic_pointer_cast<String>(a1)->get_string() << std::endl;
     } else {
-        throw EvalException("write-line can only accpet string, integer or number");
+        throw EvalException("write-line can only accpet string");
     }
     return a1;
+}
+
+std::shared_ptr<Object> fn_print(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1;
+    EVAL_JUST_ONE_ARG("write", args, env, a1);
+    if (a1->kind() == ObjectKind::String) {
+        std::cout << std::endl << '"' << std::dynamic_pointer_cast<String>(a1)->get_string() << '"';
+    } else if (a1->kind() == ObjectKind::Integer) {
+        std::cout << std::endl << std::dynamic_pointer_cast<Integer>(a1)->get_integer();
+    } else if (a1->kind() == ObjectKind::Number) {
+        std::cout << std::endl << std::to_string(std::dynamic_pointer_cast<Number>(a1)->get_number());
+    } else {
+        throw EvalException("print can only accpet string, integer or number");
+    }
+    return a1;
+}
+
+std::shared_ptr<Object> fn_prin1(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1;
+    EVAL_JUST_ONE_ARG("write", args, env, a1);
+    if (a1->kind() == ObjectKind::String) {
+        std::cout << '"' << std::dynamic_pointer_cast<String>(a1)->get_string() << '"';
+    } else if (a1->kind() == ObjectKind::Integer) {
+        std::cout << std::dynamic_pointer_cast<Integer>(a1)->get_integer();
+    } else if (a1->kind() == ObjectKind::Number) {
+        std::cout << std::to_string(std::dynamic_pointer_cast<Number>(a1)->get_number());
+    } else {
+        throw EvalException("prin1 can only accpet string, integer or number");
+    }
+    return a1;
+}
+
+std::shared_ptr<Object> fn_princ(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1;
+    EVAL_JUST_ONE_ARG("write", args, env, a1);
+    if (a1->kind() == ObjectKind::String) {
+        std::cout << std::dynamic_pointer_cast<String>(a1)->get_string();
+    } else if (a1->kind() == ObjectKind::Integer) {
+        std::cout << std::dynamic_pointer_cast<Integer>(a1)->get_integer();
+    } else if (a1->kind() == ObjectKind::Number) {
+        std::cout << std::to_string(std::dynamic_pointer_cast<Number>(a1)->get_number());
+    } else {
+        throw EvalException("princ can only accpet string, integer or number");
+    }
+    return a1;
+}
+
+std::shared_ptr<Object> fn_reads(const std::shared_ptr<List> args, Env& env) {
+    if (args != nullptr) {
+        throw EvalException("too many arguments for reads");
+    }
+
+    std::string s;
+    if (std::cin >> s) {
+        return std::make_shared<String>(s);
+    } else {
+        throw EvalException("faild to read a string");
+    }
+}
+
+std::shared_ptr<Object> fn_readi(const std::shared_ptr<List> args, Env& env) {
+    if (args != nullptr) {
+        throw EvalException("too many arguments for readi");
+    }
+
+    int i;
+    if (std::cin >> i) {
+        return std::make_shared<Integer>(i);
+    } else {
+        throw EvalException("faild to read an integer");
+    }
+}
+
+std::shared_ptr<Object> fn_readn(const std::shared_ptr<List> args, Env& env) {
+    if (args != nullptr) {
+        throw EvalException("too many arguments for readn");
+    }
+
+    double n;
+    if (std::cin >> n) {
+        return std::make_shared<Number>(n);
+    } else {
+        throw EvalException("faild to read a number");
+    }
 }
 
 std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env& env) {
@@ -1285,6 +1367,58 @@ std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env) {
     return a2;
 }
 
+std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1;
+    EVAL_JUST_ONE_ARG("set", args, env, a1);
+
+    if (a1->kind() == ObjectKind::Integer) {
+        auto integer = std::dynamic_pointer_cast<Integer>(a1)->get_integer();
+        return std::make_shared<String>(std::to_string(integer));
+    } else {
+        throw EvalException("given object is not an integer");
+    }
+}
+
+std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1;
+    EVAL_JUST_ONE_ARG("set", args, env, a1);
+
+    if (a1->kind() == ObjectKind::Number) {
+        auto number = std::dynamic_pointer_cast<Number>(a1)->get_number();
+        return std::make_shared<String>(std::to_string(number));
+    } else {
+        throw EvalException("given object is not a number");
+    }
+}
+
+std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1;
+    EVAL_JUST_ONE_ARG("set", args, env, a1);
+
+    switch (a1->kind()) {
+        case ObjectKind::List:
+            return std::make_shared<String>("List");
+        case ObjectKind::T:
+            return std::make_shared<String>("T");
+        case ObjectKind::NIL:
+            return std::make_shared<String>("NIL");
+        case ObjectKind::Integer:
+            return std::make_shared<String>("Integer");
+        case ObjectKind::Number:
+            return std::make_shared<String>("Number");
+        case ObjectKind::String:
+            return std::make_shared<String>("String");
+        case ObjectKind::Symbol:
+            return std::make_shared<String>("Symbol");
+        case ObjectKind::Function:
+            return std::make_shared<String>("Function");
+        case ObjectKind::FuncPtr:
+            return std::make_shared<String>("FuncPtr");
+        default:
+            throw EvalException("unreachable");
+    }
+}
+
 Env default_env() {
     Env env;
     env.set_obj("quote", std::make_shared<FuncPtr>(fn_quote));
@@ -1305,8 +1439,17 @@ Env default_env() {
     env.set_obj("/", std::make_shared<FuncPtr>(fn_div_num));
     env.set_obj("write", std::make_shared<FuncPtr>(fn_write));
     env.set_obj("write-line", std::make_shared<FuncPtr>(fn_write_line));
+    env.set_obj("print", std::make_shared<FuncPtr>(fn_print));
+    env.set_obj("prin1", std::make_shared<FuncPtr>(fn_prin1));
+    env.set_obj("princ", std::make_shared<FuncPtr>(fn_princ));
+    env.set_obj("reads", std::make_shared<FuncPtr>(fn_reads));
+    env.set_obj("readi", std::make_shared<FuncPtr>(fn_readi));
+    env.set_obj("readn", std::make_shared<FuncPtr>(fn_readn));
     env.set_obj("lambda", std::make_shared<FuncPtr>(fn_lambda));
     env.set_obj("set", std::make_shared<FuncPtr>(fn_set));
+    env.set_obj("int-to-string", std::make_shared<FuncPtr>(fn_int_to_string));
+    env.set_obj("num-to-string", std::make_shared<FuncPtr>(fn_num_to_string));
+    env.set_obj("type-of", std::make_shared<FuncPtr>(fn_type_of));
     env.set_obj("T", GLOBAL_T);
     env.set_obj("NIL", GLOBAL_NIL);
     return env;
@@ -1317,17 +1460,43 @@ std::istream& prompt(std::istream& is, const std::string& msg, std::string& inpu
     return std::getline(is, input);
 }
 
-int main() {
+void interpreter(Env& env) {
     std::string input;
-    Env env = default_env();
     std::cout << "press CTRL-D to exit from this interpreter" << std::endl;
     while (prompt(std::cin, "input", input)) {
         try {
             auto tokens = lex(input);
-            auto atoms = parse(tokens);
-            std::cout << eval(atoms.at(0), env)->debug() << std::endl;
+            auto objs = parse(tokens);
+            for (const auto& obj : objs) {
+                std::cout << eval(obj, env)->debug() << std::endl;
+            }
         } catch (std::exception& e) {
             std::cerr << e.what() << std::endl;
         }
+    }
+}
+
+void run(std::string input, Env& env) {
+    try {
+        for (const auto& obj : parse(lex(input))) {
+            eval(obj, env);
+        }
+    } catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
+    }
+}
+
+int main(int argc, char *argv[]) {
+    Env env = default_env();
+    if (argc == 2 && std::strcmp(argv[1], "-i") == 0) {
+        interpreter(env);
+    } else {
+        run("(princ \"lhs: \") \
+             (set n (readi)) \
+             (princ \"rhs: \") \
+             (set m (readi)) \
+             (princ \"lhs + rhs = \") \
+             (write-line (int-to-string (+ n m))) \
+            ", env);
     }
 }
