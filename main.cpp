@@ -792,7 +792,7 @@ std::shared_ptr<Integer> parse_int(
         ss << "unexpected token " << (*it)->debug() << " found: expected integer";
         throw ParseException(ss.str());
     } else {
-        const std::shared_ptr<IntegerToken> integer = std::dynamic_pointer_cast<IntegerToken>(*it);
+        const std::shared_ptr<IntegerToken> integer = std::static_pointer_cast<IntegerToken>(*it);
         it++;
         return std::make_shared<Integer>(integer->get_integer());
     }
@@ -809,7 +809,7 @@ std::shared_ptr<Number> parse_num(
         ss << "unexpected token " << (*it)->debug() << " found: expected number";
         throw ParseException(ss.str());
     } else {
-        const std::shared_ptr<NumberToken> number = std::dynamic_pointer_cast<NumberToken>(*it);
+        const std::shared_ptr<NumberToken> number = std::static_pointer_cast<NumberToken>(*it);
         it++;
         return std::make_shared<Number>(number->get_number());
     }
@@ -826,7 +826,7 @@ std::shared_ptr<String> parse_str(
         ss << "unexpected token " << (*it)->debug() << " found: expected string";
         throw ParseException(ss.str());
     } else {
-        const std::shared_ptr<StringToken> string = std::dynamic_pointer_cast<StringToken>(*it);
+        const std::shared_ptr<StringToken> string = std::static_pointer_cast<StringToken>(*it);
         it++;
         return std::make_shared<String>(string->get_string());
     }
@@ -843,7 +843,7 @@ std::shared_ptr<Symbol> parse_sym(
         ss << "unexpected token " << (*it)->debug() << " found: expected identifier";
         throw ParseException(ss.str());
     } else {
-        const std::shared_ptr<IdentToken> ident = std::dynamic_pointer_cast<IdentToken>(*it);
+        const std::shared_ptr<IdentToken> ident = std::static_pointer_cast<IdentToken>(*it);
         it++;
         return std::make_shared<Symbol>(ident->get_ident());
     }
@@ -1116,9 +1116,9 @@ std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
         case ObjectKind::String:
             return object;
         case ObjectKind::List:
-            return eval_list(std::dynamic_pointer_cast<List>(object), env);
+            return eval_list(std::static_pointer_cast<List>(object), env);
         case ObjectKind::Symbol:
-            return eval_symbol(std::dynamic_pointer_cast<Symbol>(object), env);
+            return eval_symbol(std::static_pointer_cast<Symbol>(object), env);
         default:
             // unreachable
             exit(1);
@@ -1128,21 +1128,21 @@ std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
 std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env) {
     auto head = list->get_value();
     if (head->kind() == ObjectKind::Symbol) {
-        auto name = std::dynamic_pointer_cast<Symbol>(head)->get_symbol();
+        auto name = std::static_pointer_cast<Symbol>(head)->get_symbol();
         auto obj = env.get_obj(name);
         if (obj->kind() == ObjectKind::FuncPtr) {
-            auto func = std::dynamic_pointer_cast<FuncPtr>(obj);
+            auto func = std::static_pointer_cast<FuncPtr>(obj);
             return apply_func_ptr(func, list->get_next(), env);
         } else if (obj->kind() == ObjectKind::Function) {
-            return apply_func(std::dynamic_pointer_cast<Function>(obj), list->get_next(), env);
+            return apply_func(std::static_pointer_cast<Function>(obj), list->get_next(), env);
         } else if (obj->kind() == ObjectKind::PartiallyAppliedFuncPtr) {
-            auto func = std::dynamic_pointer_cast<PartiallyAppliedFuncPtr>(obj);
+            auto func = std::static_pointer_cast<PartiallyAppliedFuncPtr>(obj);
             return apply_part_func_ptr(func, list->get_next(), env);
         } else if (obj->kind() == ObjectKind::PartiallyAppliedFunction) {
-            auto func = std::dynamic_pointer_cast<PartiallyAppliedFunction>(obj);
+            auto func = std::static_pointer_cast<PartiallyAppliedFunction>(obj);
             return apply_part_func(func, list->get_next(), env);
         } else if (obj->kind() == ObjectKind::Macro) {
-            auto macro = std::dynamic_pointer_cast<Macro>(obj);
+            auto macro = std::static_pointer_cast<Macro>(obj);
             return apply_macro(macro, list->get_next(), env);
         } else {
             throw EvalException("first symbol must be callable");
@@ -1150,16 +1150,16 @@ std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env) {
     } else {
         auto obj = eval(head, env);
         if (obj->kind() == ObjectKind::Function) {
-            auto func = std::dynamic_pointer_cast<Function>(obj);
+            auto func = std::static_pointer_cast<Function>(obj);
             return apply_func(func, list->get_next(), env);
         } else if (obj->kind() == ObjectKind::PartiallyAppliedFunction) {
-            auto func = std::dynamic_pointer_cast<PartiallyAppliedFunction>(obj);
+            auto func = std::static_pointer_cast<PartiallyAppliedFunction>(obj);
             return apply_part_func(func, list->get_next(), env);
         } else if (obj->kind() == ObjectKind::PartiallyAppliedFuncPtr) {
-            auto func = std::dynamic_pointer_cast<PartiallyAppliedFuncPtr>(obj);
+            auto func = std::static_pointer_cast<PartiallyAppliedFuncPtr>(obj);
             return apply_part_func_ptr(func, list->get_next(), env);
         } else if (obj->kind() == ObjectKind::Macro) {
-            auto macro = std::dynamic_pointer_cast<Macro>(obj);
+            auto macro = std::static_pointer_cast<Macro>(obj);
             return apply_macro(macro, list->get_next(), env);
         } else {
             throw EvalException("first object of list must be function or symbol");
@@ -1310,7 +1310,7 @@ std::shared_ptr<Object> fn_car(const std::shared_ptr<List> args, Env& env) {
     EVAL_JUST_ONE_ARG("car", args, env, a1);
 
     if (a1->kind() == ObjectKind::List) {
-        auto list = std::dynamic_pointer_cast<List>(a1);
+        auto list = std::static_pointer_cast<List>(a1);
         return list->get_value();
     } else if (a1->kind() == ObjectKind::NIL) {
         return a1;
@@ -1324,7 +1324,7 @@ std::shared_ptr<Object> fn_cdr(const std::shared_ptr<List> args, Env& env) {
     EVAL_JUST_ONE_ARG("cdr", args, env, a1);
 
     if (a1->kind() == ObjectKind::List) {
-        auto list = std::dynamic_pointer_cast<List>(a1);
+        auto list = std::static_pointer_cast<List>(a1);
         if (list->get_next() == nullptr) {
             return GLOBAL_NIL;
         } else {
@@ -1342,7 +1342,7 @@ std::shared_ptr<Object> fn_cons(const std::shared_ptr<List> args, Env& env) {
     EVAL_JUST_TWO_ARG("cons", args, env, a1, a2);
 
     if (a2->kind() == ObjectKind::List) {
-        return std::make_shared<List>(a1, std::dynamic_pointer_cast<List>(a2));
+        return std::make_shared<List>(a1, std::static_pointer_cast<List>(a2));
     } else {
         std::shared_ptr<List> list = std::make_shared<List>(a1);
         list->append(std::make_shared<List>(a2));
@@ -1375,20 +1375,20 @@ std::shared_ptr<Object> fn_if(const std::shared_ptr<List> args, Env& env) {
 #define APPLY_COMP_OP_TO_NUMS(a1, a2, op) \
     do { \
         if (a1->kind() == ObjectKind::Integer && a2->kind() == ObjectKind::Integer) { \
-            int l = std::dynamic_pointer_cast<Integer>(a1)->get_integer(); \
-            int r = std::dynamic_pointer_cast<Integer>(a2)->get_integer(); \
+            int l = std::static_pointer_cast<Integer>(a1)->get_integer(); \
+            int r = std::static_pointer_cast<Integer>(a2)->get_integer(); \
             if (l op r) { return GLOBAL_T; } else { return GLOBAL_NIL; } \
         } else if (a1->kind() == ObjectKind::Integer && a2->kind() == ObjectKind::Number) { \
-            double l = std::dynamic_pointer_cast<Integer>(a1)->get_integer(); \
-            double r = std::dynamic_pointer_cast<Number>(a2)->get_number(); \
+            double l = std::static_pointer_cast<Integer>(a1)->get_integer(); \
+            double r = std::static_pointer_cast<Number>(a2)->get_number(); \
             if (l op r) { return GLOBAL_T; } else { return GLOBAL_NIL; } \
         } else if (a1->kind() == ObjectKind::Number && a2->kind() == ObjectKind::Integer) { \
-            double l = std::dynamic_pointer_cast<Number>(a1)->get_number(); \
-            double r = std::dynamic_pointer_cast<Integer>(a2)->get_integer(); \
+            double l = std::static_pointer_cast<Number>(a1)->get_number(); \
+            double r = std::static_pointer_cast<Integer>(a2)->get_integer(); \
             if (l op r) { return GLOBAL_T; } else { return GLOBAL_NIL; } \
         } else if (a1->kind() == ObjectKind::Number && a2->kind() == ObjectKind::Number) { \
-            double l = std::dynamic_pointer_cast<Number>(a1)->get_number(); \
-            double r = std::dynamic_pointer_cast<Number>(a2)->get_number(); \
+            double l = std::static_pointer_cast<Number>(a1)->get_number(); \
+            double r = std::static_pointer_cast<Number>(a2)->get_number(); \
             if (l op r) { return GLOBAL_T; } else { return GLOBAL_NIL; } \
         } else { \
             std::ostringstream ss; \
@@ -1401,20 +1401,20 @@ std::shared_ptr<Object> fn_if(const std::shared_ptr<List> args, Env& env) {
 #define APPLY_ARITH_OP_TO_NUMS(a1, a2, a3, op) \
     do { \
         if (a1->kind() == ObjectKind::Integer && a2->kind() == ObjectKind::Integer) { \
-            int l = std::dynamic_pointer_cast<Integer>(a1)->get_integer(); \
-            int r = std::dynamic_pointer_cast<Integer>(a2)->get_integer(); \
+            int l = std::static_pointer_cast<Integer>(a1)->get_integer(); \
+            int r = std::static_pointer_cast<Integer>(a2)->get_integer(); \
             a3 = std::make_shared<Integer>(l op r); \
         } else if (a1->kind() == ObjectKind::Integer && a2->kind() == ObjectKind::Number) { \
-            double l = std::dynamic_pointer_cast<Integer>(a1)->get_integer(); \
-            double r = std::dynamic_pointer_cast<Number>(a2)->get_number(); \
+            double l = std::static_pointer_cast<Integer>(a1)->get_integer(); \
+            double r = std::static_pointer_cast<Number>(a2)->get_number(); \
             a3 = std::make_shared<Number>(l op r); \
         } else if (a1->kind() == ObjectKind::Number && a2->kind() == ObjectKind::Integer) { \
-            double l = std::dynamic_pointer_cast<Number>(a1)->get_number(); \
-            double r = std::dynamic_pointer_cast<Integer>(a2)->get_integer(); \
+            double l = std::static_pointer_cast<Number>(a1)->get_number(); \
+            double r = std::static_pointer_cast<Integer>(a2)->get_integer(); \
             a3 = std::make_shared<Number>(l op r); \
         } else if (a1->kind() == ObjectKind::Number && a2->kind() == ObjectKind::Number) { \
-            double l = std::dynamic_pointer_cast<Number>(a1)->get_number(); \
-            double r = std::dynamic_pointer_cast<Number>(a2)->get_number(); \
+            double l = std::static_pointer_cast<Number>(a1)->get_number(); \
+            double r = std::static_pointer_cast<Number>(a2)->get_number(); \
             a3 = std::make_shared<Number>(l op r); \
         } else { \
             std::ostringstream ss; \
@@ -1519,8 +1519,8 @@ std::shared_ptr<Object> fn_div_num(const std::shared_ptr<List> args, Env& env) {
 #define APPLY_COMP_OP_TO_STRS(name, a1, a2, op, ignore_upper_lower) \
     do { \
         if (a1->kind() == ObjectKind::String && a2->kind() == ObjectKind::String) { \
-            auto l = std::dynamic_pointer_cast<String>(a1)->get_string(); \
-            auto r = std::dynamic_pointer_cast<String>(a2)->get_string(); \
+            auto l = std::static_pointer_cast<String>(a1)->get_string(); \
+            auto r = std::static_pointer_cast<String>(a2)->get_string(); \
             if ((ignore_upper_lower)) { \
                 std::transform(l.begin(), l.end(), l.begin(), tolower); \
                 std::transform(r.begin(), r.end(), r.begin(), tolower); \
@@ -1583,11 +1583,11 @@ std::shared_ptr<Object> fn_write(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("write", args, env, a1);
     if (a1->kind() == ObjectKind::String) {
-        std::cout << '"' << std::dynamic_pointer_cast<String>(a1)->get_string() << '"';
+        std::cout << '"' << std::static_pointer_cast<String>(a1)->get_string() << '"';
     } else if (a1->kind() == ObjectKind::Integer) {
-        std::cout << std::dynamic_pointer_cast<Integer>(a1)->get_integer();
+        std::cout << std::static_pointer_cast<Integer>(a1)->get_integer();
     } else if (a1->kind() == ObjectKind::Number) {
-        std::cout << std::to_string(std::dynamic_pointer_cast<Number>(a1)->get_number());
+        std::cout << std::to_string(std::static_pointer_cast<Number>(a1)->get_number());
     } else {
         throw EvalException("write can only accpet string, integer or number");
     }
@@ -1598,7 +1598,7 @@ std::shared_ptr<Object> fn_write_line(const std::shared_ptr<List> args, Env& env
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("write-line", args, env, a1);
     if (a1->kind() == ObjectKind::String) {
-        std::cout << std::dynamic_pointer_cast<String>(a1)->get_string() << std::endl;
+        std::cout << std::static_pointer_cast<String>(a1)->get_string() << std::endl;
     } else {
         throw EvalException("write-line can only accpet string");
     }
@@ -1609,11 +1609,11 @@ std::shared_ptr<Object> fn_print(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("write", args, env, a1);
     if (a1->kind() == ObjectKind::String) {
-        std::cout << std::endl << '"' << std::dynamic_pointer_cast<String>(a1)->get_string() << '"';
+        std::cout << std::endl << '"' << std::static_pointer_cast<String>(a1)->get_string() << '"';
     } else if (a1->kind() == ObjectKind::Integer) {
-        std::cout << std::endl << std::dynamic_pointer_cast<Integer>(a1)->get_integer();
+        std::cout << std::endl << std::static_pointer_cast<Integer>(a1)->get_integer();
     } else if (a1->kind() == ObjectKind::Number) {
-        std::cout << std::endl << std::to_string(std::dynamic_pointer_cast<Number>(a1)->get_number());
+        std::cout << std::endl << std::to_string(std::static_pointer_cast<Number>(a1)->get_number());
     } else {
         throw EvalException("print can only accpet string, integer or number");
     }
@@ -1624,11 +1624,11 @@ std::shared_ptr<Object> fn_prin1(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("write", args, env, a1);
     if (a1->kind() == ObjectKind::String) {
-        std::cout << '"' << std::dynamic_pointer_cast<String>(a1)->get_string() << '"';
+        std::cout << '"' << std::static_pointer_cast<String>(a1)->get_string() << '"';
     } else if (a1->kind() == ObjectKind::Integer) {
-        std::cout << std::dynamic_pointer_cast<Integer>(a1)->get_integer();
+        std::cout << std::static_pointer_cast<Integer>(a1)->get_integer();
     } else if (a1->kind() == ObjectKind::Number) {
-        std::cout << std::to_string(std::dynamic_pointer_cast<Number>(a1)->get_number());
+        std::cout << std::to_string(std::static_pointer_cast<Number>(a1)->get_number());
     } else {
         throw EvalException("prin1 can only accpet string, integer or number");
     }
@@ -1639,11 +1639,11 @@ std::shared_ptr<Object> fn_princ(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("write", args, env, a1);
     if (a1->kind() == ObjectKind::String) {
-        std::cout << std::dynamic_pointer_cast<String>(a1)->get_string();
+        std::cout << std::static_pointer_cast<String>(a1)->get_string();
     } else if (a1->kind() == ObjectKind::Integer) {
-        std::cout << std::dynamic_pointer_cast<Integer>(a1)->get_integer();
+        std::cout << std::static_pointer_cast<Integer>(a1)->get_integer();
     } else if (a1->kind() == ObjectKind::Number) {
-        std::cout << std::to_string(std::dynamic_pointer_cast<Number>(a1)->get_number());
+        std::cout << std::to_string(std::static_pointer_cast<Number>(a1)->get_number());
     } else {
         throw EvalException("princ can only accpet string, integer or number");
     }
@@ -1695,13 +1695,13 @@ std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env& env) {
 
     if (a1->kind() == ObjectKind::List) {
         std::list<std::shared_ptr<Symbol>> lambda_args = {};
-        auto head = std::dynamic_pointer_cast<List>(a1);
+        auto head = std::static_pointer_cast<List>(a1);
         while (head != nullptr) {
             auto obj = head->get_value();
             if (obj->kind() != ObjectKind::Symbol) {
                 throw EvalException("list elements of lambda must be symbol");
             } else {
-                lambda_args.push_back(std::dynamic_pointer_cast<Symbol>(obj));
+                lambda_args.push_back(std::static_pointer_cast<Symbol>(obj));
                 head = head->get_next();
             }
         }
@@ -1730,13 +1730,13 @@ std::shared_ptr<Object> fn_macro(const std::shared_ptr<List> args, Env& env) {
 
     if (a1->kind() == ObjectKind::List) {
         std::list<std::shared_ptr<Symbol>> macro_args = {};
-        auto head = std::dynamic_pointer_cast<List>(a1);
+        auto head = std::static_pointer_cast<List>(a1);
         while (head != nullptr) {
             auto obj = head->get_value();
             if (obj->kind() != ObjectKind::Symbol) {
                 throw EvalException("list elements of macro must be symbol");
             } else {
-                macro_args.push_back(std::dynamic_pointer_cast<Symbol>(obj));
+                macro_args.push_back(std::static_pointer_cast<Symbol>(obj));
                 head = head->get_next();
             }
         }
@@ -1766,7 +1766,7 @@ std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env) {
     if (a1->kind() != ObjectKind::Symbol) {
         throw EvalException("first argument of set must have symbol");
     }
-    auto name = std::dynamic_pointer_cast<Symbol>(a1)->get_symbol();
+    auto name = std::static_pointer_cast<Symbol>(a1)->get_symbol();
     env.set_obj(name, a2);
     return a2;
 }
@@ -1778,7 +1778,7 @@ std::shared_ptr<Object> fn_setq(const std::shared_ptr<List> args, Env& env) {
     if (a1->kind() != ObjectKind::Symbol) {
         throw EvalException("first argument of setq must be symbol");
     }
-    auto name = std::dynamic_pointer_cast<Symbol>(a1)->get_symbol();
+    auto name = std::static_pointer_cast<Symbol>(a1)->get_symbol();
     env.set_obj(name, eval(a2, env));
     return a2;
 }
@@ -1788,7 +1788,7 @@ std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& 
     EVAL_JUST_ONE_ARG("int-to-string", args, env, a1);
 
     if (a1->kind() == ObjectKind::Integer) {
-        auto integer = std::dynamic_pointer_cast<Integer>(a1)->get_integer();
+        auto integer = std::static_pointer_cast<Integer>(a1)->get_integer();
         return std::make_shared<String>(std::to_string(integer));
     } else {
         throw EvalException("given object is not an integer");
@@ -1800,7 +1800,7 @@ std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& 
     EVAL_JUST_ONE_ARG("num-to-string", args, env, a1);
 
     if (a1->kind() == ObjectKind::Number) {
-        auto number = std::dynamic_pointer_cast<Number>(a1)->get_number();
+        auto number = std::static_pointer_cast<Number>(a1)->get_number();
         return std::make_shared<String>(std::to_string(number));
     } else {
         throw EvalException("given object is not a number");
@@ -1850,8 +1850,8 @@ std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_TWO_ARG("concat", args, env, a1, a2);
     if (a1->kind() == ObjectKind::String && a2->kind() == ObjectKind::String) {
-        acc = std::dynamic_pointer_cast<String>(a1)->get_string() +
-              std::dynamic_pointer_cast<String>(a2)->get_string();
+        acc = std::static_pointer_cast<String>(a1)->get_string() +
+              std::static_pointer_cast<String>(a2)->get_string();
     } else {
         throw EvalException("arguments of concat must be string");
     }
@@ -1860,7 +1860,7 @@ std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env& env) {
         std::shared_ptr<Object> a;
         EVAL_ONE_ARG("concat", head, env, a);
         if (a->kind() == ObjectKind::String) {
-            acc += std::dynamic_pointer_cast<String>(a)->get_string();
+            acc += std::static_pointer_cast<String>(a)->get_string();
         } else {
             throw EvalException("arguments of concat must be string");
         }
@@ -1878,7 +1878,7 @@ std::shared_ptr<Object> fn_defun(const std::shared_ptr<List> args, Env& env) {
     }
 
     auto lambda = fn_lambda(args->get_next(), env);
-    env.set_obj(std::dynamic_pointer_cast<Symbol>(a1)->get_symbol(), lambda);
+    env.set_obj(std::static_pointer_cast<Symbol>(a1)->get_symbol(), lambda);
     return lambda;
 }
 
@@ -1891,7 +1891,7 @@ std::shared_ptr<Object> fn_defmacro(const std::shared_ptr<List> args, Env& env) 
     }
 
     auto macro = fn_macro(args->get_next(), env);
-    env.set_obj(std::dynamic_pointer_cast<Symbol>(a1)->get_symbol(), macro);
+    env.set_obj(std::static_pointer_cast<Symbol>(a1)->get_symbol(), macro);
     return macro;
 }
 
@@ -1903,14 +1903,14 @@ std::shared_ptr<Object> fn_macroexpand(const std::shared_ptr<List> args, Env& en
         throw EvalException("first argument of macroexpand must be evaluated to list");
     }
 
-    auto list = std::dynamic_pointer_cast<List>(a1);
+    auto list = std::static_pointer_cast<List>(a1);
     if (list->get_value()->kind() == ObjectKind::Symbol) {
-        auto macro_name = std::dynamic_pointer_cast<Symbol>(list->get_value())->get_symbol();
+        auto macro_name = std::static_pointer_cast<Symbol>(list->get_value())->get_symbol();
         auto maybe_macro = env.get_obj(macro_name);
         if (maybe_macro->kind() != ObjectKind::Macro) {
             throw EvalException("first element of list must hold macro");
         }
-        auto macro = std::dynamic_pointer_cast<Macro>(maybe_macro);
+        auto macro = std::static_pointer_cast<Macro>(maybe_macro);
         auto expanded = expand_macro(macro, list->get_next(), env);
         if (expanded.empty()) {
             return GLOBAL_NIL;
@@ -1918,7 +1918,7 @@ std::shared_ptr<Object> fn_macroexpand(const std::shared_ptr<List> args, Env& en
             return *expanded.rbegin();
         }
     } else if (list->get_value()->kind() == ObjectKind::Macro) {
-        auto macro = std::dynamic_pointer_cast<Macro>(list->get_next());
+        auto macro = std::static_pointer_cast<Macro>(list->get_value());
         auto expanded = expand_macro(macro, list->get_next(), env);
         if (expanded.empty()) {
             return GLOBAL_NIL;
