@@ -241,9 +241,11 @@ enum class ObjectKind {
     String,
     Symbol,
     Function,
+    PartiallyAppliedFunction,
 
     // Objects which internally used and user can't create these object.
     FuncPtr,
+    PartiallyAppliedFuncPtr,
 };
 
 class Object {
@@ -308,12 +310,12 @@ public:
         this->next = next;
     }
 
-    void append(std::shared_ptr<Object> obj) {
-        auto list = shared_from_this();
-        while (list->next != nullptr) {
-            list = list->next;
+    void append(std::shared_ptr<List> list) {
+        auto it = shared_from_this();
+        while (it->next != nullptr) {
+            it = it->next;
         }
-        list->next = std::make_shared<List>(obj);
+        it->next = list;
     }
 
     std::shared_ptr<Object> get_value() {
@@ -479,17 +481,17 @@ public:
 
 class Function : public Object {
 private:
-    std::list<std::shared_ptr<Symbol>> args;
+    std::list<std::shared_ptr<Symbol>> params;
     std::list<std::shared_ptr<Object>> body;
 
 public:
-    Function(std::list<std::shared_ptr<Symbol>> args, std::list<std::shared_ptr<Object>> body) {
-        this->args = args;
+    Function(std::list<std::shared_ptr<Symbol>> params, std::list<std::shared_ptr<Object>> body) {
+        this->params = params;
         this->body = body;
     }
 
-    std::list<std::shared_ptr<Symbol>>& get_args() {
-        return args;
+    std::list<std::shared_ptr<Symbol>>& get_params() {
+        return params;
     }
 
     std::list<std::shared_ptr<Object>>& get_body() {
@@ -507,8 +509,8 @@ public:
     std::string debug() const override {
         std::ostringstream ss;
         ss << "FUNCTION (";
-        for (auto it = args.begin(); it != args.end(); it++) {
-            if (++it == args.end()) {
+        for (auto it = params.begin(); it != params.end(); it++) {
+            if (++it == params.end()) {
                 it--;
                 ss << (*it)->debug();
             } else {
@@ -522,6 +524,49 @@ public:
         }
         std::string s = ss.str();
         return s.substr(0, s.size());
+    }
+};
+
+class PartiallyAppliedFunction : public Object {
+private:
+    std::shared_ptr<Function> func;
+    std::shared_ptr<List> args;
+
+public:
+    PartiallyAppliedFunction(std::shared_ptr<Function> func) {
+        this->func = func;
+        this->args = {};
+    }
+
+    PartiallyAppliedFunction(std::shared_ptr<Function> func, std::shared_ptr<List> args) {
+        this->func = func;
+        this->args = args;
+    }
+
+    std::shared_ptr<Function> get_func() {
+        return func;
+    }
+
+    std::shared_ptr<List>& get_args() {
+        return args;
+    }
+
+    ObjectKind kind() const override {
+        return ObjectKind::PartiallyAppliedFunction;
+    }
+
+    bool is_atom() const override {
+        return false;
+    }
+
+    std::string debug() const override {
+        std::string s = func->debug();
+        auto arg_it = args;
+        while(arg_it != nullptr) {
+            s += " " + arg_it->get_value()->debug();
+            arg_it = arg_it->get_next();
+        }
+        return s;
     }
 };
 
@@ -548,6 +593,43 @@ public:
 
     std::string debug() const override {
         return "buildin function";
+    }
+};
+
+class PartiallyAppliedFuncPtr : public Object {
+private:
+    std::shared_ptr<FuncPtr> func;
+    std::shared_ptr<List> args;
+
+public:
+    PartiallyAppliedFuncPtr(std::shared_ptr<FuncPtr> func) {
+        this->func = func;
+        this->args = {};
+    }
+
+    PartiallyAppliedFuncPtr(std::shared_ptr<FuncPtr> func, std::shared_ptr<List> args) {
+        this->func = func;
+        this->args = args;
+    }
+
+    std::shared_ptr<FuncPtr> get_func() {
+        return func;
+    }
+
+    std::shared_ptr<List> get_args() {
+        return args;
+    }
+
+    ObjectKind kind() const override {
+        return ObjectKind::PartiallyAppliedFuncPtr;
+    }
+
+    bool is_atom() const override {
+        return false;
+    }
+
+    std::string debug() const override {
+        return "partially applied buildin function";
     }
 };
 
@@ -724,7 +806,7 @@ std::shared_ptr<Object> parse_list(
                 it++;
                 break;
             } else {
-                list->append(parse_object(it, last));
+                list->append(std::make_shared<List>(parse_object(it, last)));
             }
         }
         return list;
@@ -879,6 +961,21 @@ public:
 std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env);
 std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env);
 std::shared_ptr<Object> eval_symbol(const std::shared_ptr<Symbol>& symbol, Env& env);
+std::shared_ptr<Object> apply_part_func_ptr(
+    const std::shared_ptr<PartiallyAppliedFuncPtr> func,
+    const std::shared_ptr<List> args,
+    Env& env
+);
+std::shared_ptr<Object> apply_func_ptr(
+    const std::shared_ptr<FuncPtr> func,
+    const std::shared_ptr<List> args,
+    Env& env
+);
+std::shared_ptr<Object> apply_part_func(
+    const std::shared_ptr<PartiallyAppliedFunction> func,
+    const std::shared_ptr<List> args,
+    Env& env
+);
 std::shared_ptr<Object> apply_func(
     const std::shared_ptr<Function> func,
     const std::shared_ptr<List> args,
@@ -939,20 +1036,61 @@ std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env) {
         auto obj = env.get_obj(name);
         if (obj->kind() == ObjectKind::FuncPtr) {
             auto func = std::dynamic_pointer_cast<FuncPtr>(obj);
-            return func->get_func()(list->get_next(), env);
+            return apply_func_ptr(func, list->get_next(), env);
         } else if (obj->kind() == ObjectKind::Function) {
             return apply_func(std::dynamic_pointer_cast<Function>(obj), list->get_next(), env);
+        } else if (obj->kind() == ObjectKind::PartiallyAppliedFuncPtr) {
+            auto func = std::dynamic_pointer_cast<PartiallyAppliedFuncPtr>(obj);
+            return apply_part_func_ptr(func, list->get_next(), env);
+        } else if (obj->kind() == ObjectKind::PartiallyAppliedFunction) {
+            auto func = std::dynamic_pointer_cast<PartiallyAppliedFunction>(obj);
+            return apply_part_func(func, list->get_next(), env);
+        } else {
+            throw EvalException("first symbol must be callable");
         }
     } else {
         auto obj = eval(head, env);
-        if (obj->kind() != ObjectKind::Function) {
-            throw EvalException("first object of list must be function or symbol");
-        } else {
+        if (obj->kind() == ObjectKind::Function) {
             auto func = std::dynamic_pointer_cast<Function>(obj);
             return apply_func(func, list->get_next(), env);
+        } else if (obj->kind() == ObjectKind::PartiallyAppliedFunction) {
+            auto func = std::dynamic_pointer_cast<PartiallyAppliedFunction>(obj);
+            return apply_part_func(func, list->get_next(), env);
+        } else if (obj->kind() == ObjectKind::PartiallyAppliedFuncPtr) {
+            auto func = std::dynamic_pointer_cast<PartiallyAppliedFuncPtr>(obj);
+            return apply_part_func_ptr(func, list->get_next(), env);
+        } else {
+            throw EvalException("first object of list must be function or symbol");
         }
     }
-    return GLOBAL_NIL; // TODO: If I remove this statement, compiler emit waring.
+}
+
+std::shared_ptr<Object> apply_part_func_ptr(
+    const std::shared_ptr<PartiallyAppliedFuncPtr> func,
+    const std::shared_ptr<List> args,
+    Env& env
+) {
+    auto new_args = func->get_args();
+    new_args->append(args);
+    return apply_func_ptr(func->get_func(), new_args, env);
+}
+
+std::shared_ptr<Object> apply_func_ptr(
+    const std::shared_ptr<FuncPtr> func,
+    const std::shared_ptr<List> args,
+    Env& env
+) {
+    return func->get_func()(args, env);
+}
+
+std::shared_ptr<Object> apply_part_func(
+    const std::shared_ptr<PartiallyAppliedFunction> func,
+    const std::shared_ptr<List> args,
+    Env& env
+) {
+    auto new_args = func->get_args();
+    new_args->append(args);
+    return apply_func(func->get_func(), new_args, env);
 }
 
 std::shared_ptr<Object> apply_func(
@@ -960,26 +1098,28 @@ std::shared_ptr<Object> apply_func(
     const std::shared_ptr<List> args,
     Env& env
 ) {
-    std::list<std::shared_ptr<Object>> given_args;
+    std::list<std::shared_ptr<Object>> arg_list;
     auto head = args;
     while (head != nullptr) {
-        given_args.push_back(head->get_value());
+        arg_list.push_back(head->get_value());
         head = head->get_next();
     }
 
     Env temp_env(env);
-    if (given_args.size() != func->get_args().size()) {
+    if (arg_list.size() > func->get_params().size()) {
         std::ostringstream ss;
-        ss << "different number of argument to function: expect " << func->get_args().size();
-        ss << ", but got " << given_args.size();
+        ss << "different number of argument to function: expect " << func->get_params().size();
+        ss << ", but got " << arg_list.size();
         throw EvalException(ss.str());
-    } else {
-        auto syms = func->get_args().begin();
-        auto args = given_args.begin();
-        while (syms != func->get_args().end() || args != given_args.end()) {
+    } else if (arg_list.size() == func->get_params().size()){
+        auto syms = func->get_params().begin();
+        auto args = arg_list.begin();
+        while (syms != func->get_params().end()) {
             temp_env.set_obj((*syms)->get_symbol(), *args);
             syms++; args++;
         }
+    } else {
+        return std::make_shared<PartiallyAppliedFunction>(func, args);
     }
 
     std::shared_ptr<Object> result = GLOBAL_NIL;
@@ -1040,7 +1180,7 @@ std::shared_ptr<Object> fn_cons(const std::shared_ptr<List> args, Env& env) {
         return std::make_shared<List>(a1, std::dynamic_pointer_cast<List>(a2));
     } else {
         std::shared_ptr<List> list = std::make_shared<List>(a1);
-        list->append(a2);
+        list->append(std::make_shared<List>(a2));
         return list;
     }
 }
@@ -1414,6 +1554,10 @@ std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env) {
             return std::make_shared<String>("Function");
         case ObjectKind::FuncPtr:
             return std::make_shared<String>("FuncPtr");
+        case ObjectKind::PartiallyAppliedFunction:
+            return std::make_shared<String>("PartiallyAppliedFunction");
+        case ObjectKind::PartiallyAppliedFuncPtr:
+            return std::make_shared<String>("PartiallyAppliedFuncPtr");
         default:
             throw EvalException("unreachable");
     }
