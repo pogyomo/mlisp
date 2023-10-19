@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cassert>
 #include <cctype>
 #include <cstdlib>
@@ -1078,6 +1079,13 @@ std::shared_ptr<Object> fn_add_num(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_sub_num(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_mul_num(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_div_num(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_eq_str(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_ne_str(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_lt_str(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_gt_str(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_le_str(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_ge_str(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_equal_str(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_write(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_write_line(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_print(const std::shared_ptr<List> args, Env& env);
@@ -1508,6 +1516,69 @@ std::shared_ptr<Object> fn_div_num(const std::shared_ptr<List> args, Env& env) {
     return acc;
 }
 
+#define APPLY_COMP_OP_TO_STRS(name, a1, a2, op, ignore_upper_lower) \
+    do { \
+        if (a1->kind() == ObjectKind::String && a2->kind() == ObjectKind::String) { \
+            auto l = std::dynamic_pointer_cast<String>(a1)->get_string(); \
+            auto r = std::dynamic_pointer_cast<String>(a2)->get_string(); \
+            if ((ignore_upper_lower)) { \
+                std::transform(l.begin(), l.end(), l.begin(), tolower); \
+                std::transform(r.begin(), r.end(), r.begin(), tolower); \
+            } \
+            if (l op r) { \
+                return GLOBAL_T; \
+            } else { \
+                return GLOBAL_NIL; \
+            } \
+        } else { \
+            std::ostringstream ss; \
+            ss << "arguments of " << name << " must be string"; \
+            throw EvalException(ss.str()); \
+        } \
+    } while (0)
+
+std::shared_ptr<Object> fn_eq_str(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1, a2;
+    EVAL_JUST_TWO_ARG("string=", args, env, a1, a2);
+    APPLY_COMP_OP_TO_STRS("string=", a1, a2, ==, false);
+}
+
+std::shared_ptr<Object> fn_ne_str(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1, a2;
+    EVAL_JUST_TWO_ARG("string/=", args, env, a1, a2);
+    APPLY_COMP_OP_TO_STRS("string/=", a1, a2, !=, false);
+}
+
+std::shared_ptr<Object> fn_lt_str(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1, a2;
+    EVAL_JUST_TWO_ARG("string<", args, env, a1, a2);
+    APPLY_COMP_OP_TO_STRS("string<", a1, a2, <, false);
+}
+
+std::shared_ptr<Object> fn_gt_str(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1, a2;
+    EVAL_JUST_TWO_ARG("string>", args, env, a1, a2);
+    APPLY_COMP_OP_TO_STRS("string>", a1, a2, >, false);
+}
+
+std::shared_ptr<Object> fn_le_str(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1, a2;
+    EVAL_JUST_TWO_ARG("string<=", args, env, a1, a2);
+    APPLY_COMP_OP_TO_STRS("string<=", a1, a2, <=, false);
+}
+
+std::shared_ptr<Object> fn_ge_str(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1, a2;
+    EVAL_JUST_TWO_ARG("string>=", args, env, a1, a2);
+    APPLY_COMP_OP_TO_STRS("string>=", a1, a2, >=, false);
+}
+
+std::shared_ptr<Object> fn_equal_str(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1, a2;
+    EVAL_JUST_TWO_ARG("string>=", args, env, a1, a2);
+    APPLY_COMP_OP_TO_STRS("string>=", a1, a2, >=, true);
+}
+
 std::shared_ptr<Object> fn_write(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("write", args, env, a1);
@@ -1878,6 +1949,13 @@ Env default_env() {
     env.set_obj("-", std::make_shared<FuncPtr>(fn_sub_num));
     env.set_obj("*", std::make_shared<FuncPtr>(fn_mul_num));
     env.set_obj("/", std::make_shared<FuncPtr>(fn_div_num));
+    env.set_obj("string=", std::make_shared<FuncPtr>(fn_eq_str));
+    env.set_obj("string/=", std::make_shared<FuncPtr>(fn_ne_str));
+    env.set_obj("string<", std::make_shared<FuncPtr>(fn_lt_str));
+    env.set_obj("string>", std::make_shared<FuncPtr>(fn_gt_str));
+    env.set_obj("string<=", std::make_shared<FuncPtr>(fn_le_str));
+    env.set_obj("string>=", std::make_shared<FuncPtr>(fn_ge_str));
+    env.set_obj("string-equal", std::make_shared<FuncPtr>(fn_equal_str));
     env.set_obj("write", std::make_shared<FuncPtr>(fn_write));
     env.set_obj("write-line", std::make_shared<FuncPtr>(fn_write_line));
     env.set_obj("print", std::make_shared<FuncPtr>(fn_print));
