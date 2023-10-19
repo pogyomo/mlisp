@@ -216,12 +216,21 @@ std::shared_ptr<Token> token(std::string::const_iterator& it, const std::string:
     }
 }
 
+bool skip_whitespaces(std::string::const_iterator& it, const std::string::const_iterator& last) {
+    if (it != last && isspace(*it)) {
+        while (it != last && isspace(*it)) { it++; }
+        return true;
+    } else {
+        return false;
+    }
+}
+
 std::vector<std::shared_ptr<Token>> lex(const std::string& input) {
     std::vector<std::shared_ptr<Token>> tokens;
     auto it = input.begin();
     const auto last = input.end();
     while (true) {
-        while (it != last && isspace(*it)) { it++; }
+        skip_whitespaces(it, last);
         if (it != last) {
             tokens.push_back(token(it, last));
         } else {
@@ -1117,7 +1126,7 @@ std::shared_ptr<Object> apply_func(
         auto syms = func->get_params().begin();
         auto args = arg_list.begin();
         while (syms != func->get_params().end()) {
-            temp_env.set_obj((*syms)->get_symbol(), *args);
+            temp_env.set_obj((*syms)->get_symbol(), eval(*args, env));
             syms++; args++;
         }
     } else {
@@ -1228,7 +1237,10 @@ std::shared_ptr<Object> fn_if(const std::shared_ptr<List> args, Env& env) {
             double r = std::dynamic_pointer_cast<Number>(a2)->get_number(); \
             if (l op r) { return GLOBAL_T; } else { return GLOBAL_NIL; } \
         } else { \
-            throw EvalException(std::string(#op) + " cannot be applied to non-numeric object"); \
+            std::ostringstream ss; \
+            ss << std::string(#op) << " cannot be applied to non-numeric objects: "; \
+            ss << "lhs is " << a1->debug() << " and rhs is " << a2->debug(); \
+            throw EvalException(ss.str()); \
         } \
     } while (0)
 
@@ -1251,7 +1263,10 @@ std::shared_ptr<Object> fn_if(const std::shared_ptr<List> args, Env& env) {
             double r = std::dynamic_pointer_cast<Number>(a2)->get_number(); \
             a3 = std::make_shared<Number>(l op r); \
         } else { \
-            throw EvalException(std::string(#op) + " cannot be applied to non-numeric object"); \
+            std::ostringstream ss; \
+            ss << std::string(#op) << " cannot be applied to non-numeric objects: "; \
+            ss << "lhs is " << a1->debug() << " and rhs is " << a2->debug(); \
+            throw EvalException(ss.str()); \
         } \
     } while (0)
 
@@ -1263,31 +1278,31 @@ std::shared_ptr<Object> fn_eq_num(const std::shared_ptr<List> args, Env& env) {
 
 std::shared_ptr<Object> fn_ne_num(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
-    EVAL_JUST_TWO_ARG("=", args, env, a1, a2);
+    EVAL_JUST_TWO_ARG("/=", args, env, a1, a2);
     APPLY_COMP_OP_TO_NUMS(a1, a2, !=);
 }
 
 std::shared_ptr<Object> fn_lt_num(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
-    EVAL_JUST_TWO_ARG("=", args, env, a1, a2);
+    EVAL_JUST_TWO_ARG("<", args, env, a1, a2);
     APPLY_COMP_OP_TO_NUMS(a1, a2, <);
 }
 
 std::shared_ptr<Object> fn_gt_num(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
-    EVAL_JUST_TWO_ARG("=", args, env, a1, a2);
+    EVAL_JUST_TWO_ARG(">", args, env, a1, a2);
     APPLY_COMP_OP_TO_NUMS(a1, a2, >);
 }
 
 std::shared_ptr<Object> fn_le_num(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
-    EVAL_JUST_TWO_ARG("=", args, env, a1, a2);
+    EVAL_JUST_TWO_ARG("<=", args, env, a1, a2);
     APPLY_COMP_OP_TO_NUMS(a1, a2, <=);
 }
 
 std::shared_ptr<Object> fn_ge_num(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1, a2;
-    EVAL_JUST_TWO_ARG("=", args, env, a1, a2);
+    EVAL_JUST_TWO_ARG(">=", args, env, a1, a2);
     APPLY_COMP_OP_TO_NUMS(a1, a2, >=);
 }
 
