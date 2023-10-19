@@ -2,9 +2,11 @@
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <istream>
+#include <iterator>
 #include <sstream>
 #include <list>
 #include <map>
@@ -1029,6 +1031,11 @@ public:
 std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env);
 std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env);
 std::shared_ptr<Object> eval_symbol(const std::shared_ptr<Symbol>& symbol, Env& env);
+std::list<std::shared_ptr<Object>> expand_macro(
+    const std::shared_ptr<Macro> macro,
+    const std::shared_ptr<List> args,
+    Env& env
+);
 std::shared_ptr<Object> apply_macro(
     const std::shared_ptr<Macro> macro,
     const std::shared_ptr<List> args,
@@ -1089,6 +1096,7 @@ std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_defun(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_defmacro(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_macroexpand(const std::shared_ptr<List> args, Env& env);
 
 std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
     switch (object->kind()) {
@@ -1150,7 +1158,7 @@ std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env) {
     }
 }
 
-std::shared_ptr<Object> apply_macro(
+std::list<std::shared_ptr<Object>> expand_macro(
     const std::shared_ptr<Macro> macro,
     const std::shared_ptr<List> args,
     Env& env
@@ -1177,9 +1185,22 @@ std::shared_ptr<Object> apply_macro(
         }
     }
 
-    std::shared_ptr<Object> result = GLOBAL_NIL;
+    std::list<std::shared_ptr<Object>> list;
     for (auto& body : macro->get_body()) {
-        result = eval(eval(body, temp_env), env);
+        list.push_back(eval(body, temp_env));
+    }
+    return list;
+}
+
+std::shared_ptr<Object> apply_macro(
+    const std::shared_ptr<Macro> macro,
+    const std::shared_ptr<List> args,
+    Env& env
+) {
+    auto expanded_objs = expand_macro(macro, args, env);
+    std::shared_ptr<Object> result = GLOBAL_NIL;
+    for (auto& expanded_obj : expanded_objs) {
+        result = eval(expanded_obj, env);
     }
     return result;
 }
@@ -1796,6 +1817,41 @@ std::shared_ptr<Object> fn_defmacro(const std::shared_ptr<List> args, Env& env) 
     return macro;
 }
 
+std::shared_ptr<Object> fn_macroexpand(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1;
+    EVAL_ONE_ARG("macroexpand", args, env, a1);
+
+    if (a1->kind() != ObjectKind::List) {
+        throw EvalException("first argument of macroexpand must be evaluated to list");
+    }
+
+    auto list = std::dynamic_pointer_cast<List>(a1);
+    if (list->get_value()->kind() == ObjectKind::Symbol) {
+        auto macro_name = std::dynamic_pointer_cast<Symbol>(list->get_value())->get_symbol();
+        auto maybe_macro = env.get_obj(macro_name);
+        if (maybe_macro->kind() != ObjectKind::Macro) {
+            throw EvalException("first element of list must hold macro");
+        }
+        auto macro = std::dynamic_pointer_cast<Macro>(maybe_macro);
+        auto expanded = expand_macro(macro, list->get_next(), env);
+        if (expanded.empty()) {
+            return GLOBAL_NIL;
+        } else {
+            return *expanded.rbegin();
+        }
+    } else if (list->get_value()->kind() == ObjectKind::Macro) {
+        auto macro = std::dynamic_pointer_cast<Macro>(list->get_next());
+        auto expanded = expand_macro(macro, list->get_next(), env);
+        if (expanded.empty()) {
+            return GLOBAL_NIL;
+        } else {
+            return *expanded.rbegin();
+        }
+    } else {
+        throw EvalException("first element of list must be symbol or macro");
+    }
+}
+
 Env default_env() {
     Env env;
     env.set_obj("quote", std::make_shared<FuncPtr>(fn_quote));
@@ -1833,6 +1889,7 @@ Env default_env() {
     env.set_obj("concat", std::make_shared<FuncPtr>(fn_concat));
     env.set_obj("defun", std::make_shared<FuncPtr>(fn_defun));
     env.set_obj("defmacro", std::make_shared<FuncPtr>(fn_defmacro));
+    env.set_obj("macroexpand", std::make_shared<FuncPtr>(fn_macroexpand));
     env.set_obj("T", GLOBAL_T);
     env.set_obj("NIL", GLOBAL_NIL);
     return env;
@@ -1871,15 +1928,15 @@ void run(std::string input, Env& env) {
 
 int main(int argc, char *argv[]) {
     Env env = default_env();
-    if (argc == 2 && std::strcmp(argv[1], "-i") == 0) {
-        interpreter(env);
+    if (argc == 2) {
+        std::ifstream ifs(argv[1]);
+        if (!ifs) {
+            std::cerr << "faild to open file " << argv[1] << std::endl;
+            std::exit(1);
+        }
+        std::string content((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+        run(content, env);
     } else {
-        run("(princ \"lhs: \") \
-             (setq n (read-int)) \
-             (princ \"rhs: \") \
-             (setq m (read-int)) \
-             (princ \"lhs + rhs = \") \
-             (write-line (int-to-string (+ n m))) \
-            ", env);
+        interpreter(env);
     }
 }
