@@ -1093,7 +1093,6 @@ std::shared_ptr<Object> fn_setq(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_debug(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_debugq(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_defun(const std::shared_ptr<List> args, Env& env);
@@ -1743,12 +1742,6 @@ std::shared_ptr<Object> fn_debug(const std::shared_ptr<List> args, Env& env) {
     return std::make_shared<String>(a1->debug());
 }
 
-std::shared_ptr<Object> fn_debugq(const std::shared_ptr<List> args, Env& env) {
-    std::shared_ptr<Object> a1;
-    TAKE_JUST_ONE_ARG("debugq", args, a1);
-    return std::make_shared<String>(a1->debug());
-}
-
 std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("type-of", args, env, a1);
@@ -1900,7 +1893,6 @@ Env default_env() {
     env.set_obj("int-to-string", std::make_shared<FuncPtr>(fn_int_to_string));
     env.set_obj("num-to-string", std::make_shared<FuncPtr>(fn_num_to_string));
     env.set_obj("debug", std::make_shared<FuncPtr>(fn_debug));
-    env.set_obj("debugq", std::make_shared<FuncPtr>(fn_debugq));
     env.set_obj("type-of", std::make_shared<FuncPtr>(fn_type_of));
     env.set_obj("concat", std::make_shared<FuncPtr>(fn_concat));
     env.set_obj("defun", std::make_shared<FuncPtr>(fn_defun));
