@@ -251,6 +251,7 @@ enum class ObjectKind {
     Symbol,
     Function,
     PartiallyAppliedFunction,
+    Macro,
 
     // Objects which internally used and user can't create these object.
     FuncPtr,
@@ -325,6 +326,16 @@ public:
             it = it->next;
         }
         it->next = list;
+    }
+
+    std::list<std::shared_ptr<Object>> to_list() {
+        std::list<std::shared_ptr<Object>> list;
+        auto it = shared_from_this();
+        while (it != nullptr) {
+            list.push_back(it->value);
+            it = it->next;
+        }
+        return list;
     }
 
     std::shared_ptr<Object> get_value() {
@@ -639,6 +650,54 @@ public:
 
     std::string debug() const override {
         return "partially applied buildin function";
+    }
+};
+
+class Macro : public Object {
+private:
+    std::list<std::shared_ptr<Symbol>> params;
+    std::list<std::shared_ptr<Object>> body;
+
+public:
+    Macro(std::list<std::shared_ptr<Symbol>> params, std::list<std::shared_ptr<Object>> body) {
+        this->params = params;
+        this->body = body;
+    }
+
+    std::list<std::shared_ptr<Symbol>>& get_params() {
+        return params;
+    }
+
+    std::list<std::shared_ptr<Object>>& get_body() {
+        return body;
+    }
+
+    ObjectKind kind() const override {
+        return ObjectKind::Macro;
+    }
+
+    bool is_atom() const override {
+        return false;
+    }
+
+    std::string debug() const override {
+        std::ostringstream ss;
+        ss << "MACRO (";
+        for (auto it = params.begin(); it != params.end(); it++) {
+            if (++it == params.end()) {
+                it--;
+                ss << (*it)->debug();
+            } else {
+                it--;
+                ss << (*it)->debug() << " ";
+            }
+        }
+        ss << ")";
+        for (const auto& body : body) {
+            ss << " " << body->debug();
+        }
+        std::string s = ss.str();
+        return s.substr(0, s.size());
     }
 };
 
@@ -970,6 +1029,11 @@ public:
 std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env);
 std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env);
 std::shared_ptr<Object> eval_symbol(const std::shared_ptr<Symbol>& symbol, Env& env);
+std::shared_ptr<Object> apply_macro(
+    const std::shared_ptr<Macro> macro,
+    const std::shared_ptr<List> args,
+    Env& env
+);
 std::shared_ptr<Object> apply_part_func_ptr(
     const std::shared_ptr<PartiallyAppliedFuncPtr> func,
     const std::shared_ptr<List> args,
@@ -991,6 +1055,7 @@ std::shared_ptr<Object> apply_func(
     Env& env
 );
 std::shared_ptr<Object> fn_quote(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_list(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_car(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_cdr(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_cons(const std::shared_ptr<List> args, Env& env);
@@ -1015,12 +1080,15 @@ std::shared_ptr<Object> fn_read_str(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_read_int(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_read_num(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_macro(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_setq(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_defun(const std::shared_ptr<List> args, Env& env);
+std::shared_ptr<Object> fn_defmacro(const std::shared_ptr<List> args, Env& env);
 
 std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
     switch (object->kind()) {
@@ -1056,6 +1124,9 @@ std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env) {
         } else if (obj->kind() == ObjectKind::PartiallyAppliedFunction) {
             auto func = std::dynamic_pointer_cast<PartiallyAppliedFunction>(obj);
             return apply_part_func(func, list->get_next(), env);
+        } else if (obj->kind() == ObjectKind::Macro) {
+            auto macro = std::dynamic_pointer_cast<Macro>(obj);
+            return apply_macro(macro, list->get_next(), env);
         } else {
             throw EvalException("first symbol must be callable");
         }
@@ -1070,10 +1141,47 @@ std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env) {
         } else if (obj->kind() == ObjectKind::PartiallyAppliedFuncPtr) {
             auto func = std::dynamic_pointer_cast<PartiallyAppliedFuncPtr>(obj);
             return apply_part_func_ptr(func, list->get_next(), env);
+        } else if (obj->kind() == ObjectKind::Macro) {
+            auto macro = std::dynamic_pointer_cast<Macro>(obj);
+            return apply_macro(macro, list->get_next(), env);
         } else {
             throw EvalException("first object of list must be function or symbol");
         }
     }
+}
+
+std::shared_ptr<Object> apply_macro(
+    const std::shared_ptr<Macro> macro,
+    const std::shared_ptr<List> args,
+    Env& env
+) {
+    std::list<std::shared_ptr<Object>> arg_list;
+    auto head = args;
+    while (head != nullptr) {
+        arg_list.push_back(head->get_value());
+        head = head->get_next();
+    }
+
+    Env temp_env(env);
+    if (arg_list.size() != macro->get_params().size()) {
+        std::ostringstream ss;
+        ss << "different number of argument to macro: expect " << macro->get_params().size();
+        ss << ", but got " << arg_list.size();
+        throw EvalException(ss.str());
+    } else {
+        auto syms = macro->get_params().begin();
+        auto args = arg_list.begin();
+        while (syms != macro->get_params().end()) {
+            temp_env.set_obj((*syms)->get_symbol(), *args);
+            syms++; args++;
+        }
+    }
+
+    std::shared_ptr<Object> result = GLOBAL_NIL;
+    for (auto& body : macro->get_body()) {
+        result = eval(eval(body, temp_env), env);
+    }
+    return result;
 }
 
 std::shared_ptr<Object> apply_part_func_ptr(
@@ -1149,6 +1257,22 @@ std::shared_ptr<Object> fn_quote(const std::shared_ptr<List> args, Env& env) {
     TAKE_JUST_ONE_ARG("quote", args, a1);
 
     return a1;
+}
+
+std::shared_ptr<Object> fn_list(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1;
+    EVAL_ONE_ARG("list", args, env, a1);
+
+    auto list = std::make_shared<List>(a1);
+    auto arg_it = args->get_next();
+    while (arg_it != nullptr) {
+        // HACK: When we append item to list, it takes O(len(list)).
+        //       The length increment if I append item. So, the time complexity is
+        //       O(1 + 2 + .. + n) = O(n^2), which is slow if number of item is too big.
+        list->append(std::make_shared<List>(eval(arg_it->get_value(), env)));
+        arg_it = arg_it->get_next();
+    }
+    return list;
 }
 
 std::shared_ptr<Object> fn_car(const std::shared_ptr<List> args, Env& env) {
@@ -1490,26 +1614,56 @@ std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env& env) {
         }
 
         std::list<std::shared_ptr<Object>> lambda_body = {};
-        auto body_head = args->get_next();
-        while (body_head != nullptr) {
-            lambda_body.push_back(body_head->get_value());
-            body_head = body_head->get_next();
+        if (args->get_next() != nullptr) {
+            lambda_body = args->get_next()->to_list();
         }
 
         return std::make_shared<Function>(lambda_args, lambda_body);
     } else if (a1->kind() == ObjectKind::NIL) {
         std::list<std::shared_ptr<Object>> lambda_body = {};
-        auto body_head = args->get_next();
-        while (body_head != nullptr) {
-            lambda_body.push_back(body_head->get_value());
-            body_head = body_head->get_next();
+        if (args->get_next() != nullptr) {
+            lambda_body = args->get_next()->to_list();
         }
 
         return std::make_shared<Function>(std::list<std::shared_ptr<Symbol>>(), lambda_body);
     } else {
         throw EvalException("first argument of lambda must be list");
     }
+}
 
+std::shared_ptr<Object> fn_macro(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1;
+    TAKE_ONE_ARG("macro", args, a1);
+
+    if (a1->kind() == ObjectKind::List) {
+        std::list<std::shared_ptr<Symbol>> macro_args = {};
+        auto head = std::dynamic_pointer_cast<List>(a1);
+        while (head != nullptr) {
+            auto obj = head->get_value();
+            if (obj->kind() != ObjectKind::Symbol) {
+                throw EvalException("list elements of macro must be symbol");
+            } else {
+                macro_args.push_back(std::dynamic_pointer_cast<Symbol>(obj));
+                head = head->get_next();
+            }
+        }
+
+        std::list<std::shared_ptr<Object>> macro_body = {};
+        if (args->get_next() != nullptr) {
+            macro_body = args->get_next()->to_list();
+        }
+
+        return std::make_shared<Macro>(macro_args, macro_body);
+    } else if (a1->kind() == ObjectKind::NIL) {
+        std::list<std::shared_ptr<Object>> macro_body = {};
+        if (args->get_next() != nullptr) {
+            macro_body = args->get_next()->to_list();
+        }
+
+        return std::make_shared<Macro>(std::list<std::shared_ptr<Symbol>>(), macro_body);
+    } else {
+        throw EvalException("first argument of macro must be list");
+    }
 }
 
 std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env) {
@@ -1616,9 +1770,36 @@ std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env& env) {
     return std::make_shared<String>(acc);
 }
 
+std::shared_ptr<Object> fn_defun(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1;
+    TAKE_ONE_ARG("defun", args, a1);
+
+    if (a1->kind() != ObjectKind::Symbol) {
+        throw EvalException("first argument of defun must be symbol");
+    }
+
+    auto lambda = fn_lambda(args->get_next(), env);
+    env.set_obj(std::dynamic_pointer_cast<Symbol>(a1)->get_symbol(), lambda);
+    return lambda;
+}
+
+std::shared_ptr<Object> fn_defmacro(const std::shared_ptr<List> args, Env& env) {
+    std::shared_ptr<Object> a1;
+    TAKE_ONE_ARG("defun", args, a1);
+
+    if (a1->kind() != ObjectKind::Symbol) {
+        throw EvalException("first argument of defmacro must be symbol");
+    }
+
+    auto macro = fn_macro(args->get_next(), env);
+    env.set_obj(std::dynamic_pointer_cast<Symbol>(a1)->get_symbol(), macro);
+    return macro;
+}
+
 Env default_env() {
     Env env;
     env.set_obj("quote", std::make_shared<FuncPtr>(fn_quote));
+    env.set_obj("list", std::make_shared<FuncPtr>(fn_list));
     env.set_obj("car", std::make_shared<FuncPtr>(fn_car));
     env.set_obj("cdr", std::make_shared<FuncPtr>(fn_cdr));
     env.set_obj("cons", std::make_shared<FuncPtr>(fn_cons));
@@ -1643,12 +1824,15 @@ Env default_env() {
     env.set_obj("read-int", std::make_shared<FuncPtr>(fn_read_int));
     env.set_obj("read-num", std::make_shared<FuncPtr>(fn_read_num));
     env.set_obj("lambda", std::make_shared<FuncPtr>(fn_lambda));
+    env.set_obj("macro", std::make_shared<FuncPtr>(fn_macro));
     env.set_obj("set", std::make_shared<FuncPtr>(fn_set));
     env.set_obj("setq", std::make_shared<FuncPtr>(fn_setq));
     env.set_obj("int-to-string", std::make_shared<FuncPtr>(fn_int_to_string));
     env.set_obj("num-to-string", std::make_shared<FuncPtr>(fn_num_to_string));
     env.set_obj("type-of", std::make_shared<FuncPtr>(fn_type_of));
     env.set_obj("concat", std::make_shared<FuncPtr>(fn_concat));
+    env.set_obj("defun", std::make_shared<FuncPtr>(fn_defun));
+    env.set_obj("defmacro", std::make_shared<FuncPtr>(fn_defmacro));
     env.set_obj("T", GLOBAL_T);
     env.set_obj("NIL", GLOBAL_NIL);
     return env;
