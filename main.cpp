@@ -1255,6 +1255,8 @@ public:
 
 std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env);
 std::shared_ptr<Object> eval_backquoted(const std::shared_ptr<Object>& object, Env& env);
+std::shared_ptr<Object> eval_backquoted_list(const std::shared_ptr<List>& list, Env& env);
+std::list<std::shared_ptr<Object>> eval_backquoted_inner(const std::shared_ptr<Object>& object, Env& env);
 std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env);
 std::shared_ptr<Object> eval_symbol(const std::shared_ptr<Symbol>& symbol, Env& env);
 std::list<std::shared_ptr<Object>> expand_macro(
@@ -1352,6 +1354,7 @@ std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
         case ObjectKind::Quoted:
             return std::static_pointer_cast<Quoted>(object)->get_object();
         case ObjectKind::BackQuoted:
+            // TODO: This algorithm can't evaluate `(',@(list 10 20)) to ((quote 10 20)) like clisp does.
             return eval_backquoted(std::static_pointer_cast<BackQuoted>(object)->get_object(), env);
         case ObjectKind::Comma:
         case ObjectKind::CommaAtmark:
@@ -1362,40 +1365,55 @@ std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
 }
 
 std::shared_ptr<Object> eval_backquoted(const std::shared_ptr<Object>& object, Env& env) {
-    if (object->kind() != ObjectKind::List) {
+    if (object->kind() == ObjectKind::Quoted) {
+        auto inner = std::static_pointer_cast<Quoted>(object)->get_object();
+        return eval_backquoted(inner, env);
+    } else if (object->kind() == ObjectKind::Comma) {
+        auto inner = std::static_pointer_cast<Comma>(object)->get_object();
+        return eval(inner, env);
+    } else if (object->kind() == ObjectKind::List) {
+        return eval_backquoted_list(std::static_pointer_cast<List>(object), env);
+    } else {
         return object;
     }
+}
 
-    auto it = std::static_pointer_cast<List>(object);
-    std::list<std::shared_ptr<Object>> list;
-    while (it != nullptr) {
-        auto value = it->get_value();
-        if (value->kind() == ObjectKind::Comma) {
-            auto inner = std::static_pointer_cast<Comma>(value)->get_object();
-            list.push_back(eval(inner, env));
-        } else if (value->kind() == ObjectKind::CommaAtmark) {
-            auto inner = eval(std::static_pointer_cast<CommaAtmark>(value)->get_object(), env);
+std::shared_ptr<Object> eval_backquoted_list(const std::shared_ptr<List>& list, Env& env) {
+    std::list<std::shared_ptr<Object>> objs;
+    auto list_it = list;
+    while (list_it != nullptr) {
+        auto object = list_it->get_value();
+        if (object->kind() == ObjectKind::Comma) {
+            auto inner = std::static_pointer_cast<Comma>(object)->get_object();
+            objs.push_back(eval(inner, env));
+        } else if (object->kind() == ObjectKind::CommaAtmark) {
+            auto inner = eval(std::static_pointer_cast<CommaAtmark>(object)->get_object(), env);
             if (inner->kind() == ObjectKind::List) {
                 auto inner_it = std::static_pointer_cast<List>(inner);
                 while (inner_it != nullptr) {
-                    list.push_back(inner_it->get_value());
+                    objs.push_back(inner_it->get_value());
                     inner_it = inner_it->get_next();
                 }
             } else {
-                list.push_back(inner);
+                objs.push_back(inner);
             }
+        } else if (object->kind() == ObjectKind::Quoted) {
+            auto inner = std::static_pointer_cast<Quoted>(object)->get_object();
+            objs.push_back(std::make_shared<Quoted>(eval_backquoted(inner, env)));
+        } else if (object->kind() == ObjectKind::List) {
+            objs.push_back(eval_backquoted_list(std::static_pointer_cast<List>(object), env));
         } else {
-            list.push_back(value);
+            objs.push_back(object);
         }
-        it = it->get_next();
+        list_it = list_it->get_next();
     }
-
-    auto list_it = list.begin();
-    auto result = std::make_shared<List>(*list_it++);
-    while (list_it != list.end()) {
-        result->append(std::make_shared<List>(*list_it++));
+    auto new_list = std::make_shared<List>(objs.front());
+    objs.pop_front();
+    while (!objs.empty()) {
+        new_list->append(std::make_shared<List>(objs.front()));
+        objs.pop_front();
     }
-    return result;
+    return new_list;
 }
 
 std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env) {
@@ -2206,6 +2224,37 @@ std::shared_ptr<Object> fn_macroexpand(const std::shared_ptr<List> args, Env& en
     }
 }
 
+std::istream& prompt(std::istream& is, const std::string& msg, std::string& input) {
+    std::cout << msg << ": " << std::flush;
+    return std::getline(is, input);
+}
+
+void interpreter(Env& env) {
+    std::string input;
+    std::cout << "press CTRL-D to exit from this interpreter" << std::endl;
+    while (prompt(std::cin, "input", input)) {
+        try {
+            auto tokens = lex(input);
+            auto objs = parse(tokens);
+            for (const auto& obj : objs) {
+                std::cout << eval(obj, env)->debug() << std::endl;
+            }
+        } catch (std::exception& e) {
+            std::cerr << e.what() << std::endl;
+        }
+    }
+}
+
+void run(std::string input, Env& env) {
+    try {
+        for (const auto& obj : parse(lex(input))) {
+            eval(obj, env);
+        }
+    } catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
+    }
+}
+
 Env default_env() {
     Env env;
     env.set_obj("quote", std::make_shared<FuncPtr>(fn_quote));
@@ -2254,38 +2303,8 @@ Env default_env() {
     env.set_obj("macroexpand", std::make_shared<FuncPtr>(fn_macroexpand));
     env.set_obj("T", GLOBAL_T);
     env.set_obj("NIL", GLOBAL_NIL);
+
     return env;
-}
-
-std::istream& prompt(std::istream& is, const std::string& msg, std::string& input) {
-    std::cout << msg << ": " << std::flush;
-    return std::getline(is, input);
-}
-
-void interpreter(Env& env) {
-    std::string input;
-    std::cout << "press CTRL-D to exit from this interpreter" << std::endl;
-    while (prompt(std::cin, "input", input)) {
-        try {
-            auto tokens = lex(input);
-            auto objs = parse(tokens);
-            for (const auto& obj : objs) {
-                std::cout << eval(obj, env)->debug() << std::endl;
-            }
-        } catch (std::exception& e) {
-            std::cerr << e.what() << std::endl;
-        }
-    }
-}
-
-void run(std::string input, Env& env) {
-    try {
-        for (const auto& obj : parse(lex(input))) {
-            eval(obj, env);
-        }
-    } catch (std::exception& e) {
-        std::cerr << e.what() << std::endl;
-    }
 }
 
 int main(int argc, char *argv[]) {
