@@ -815,7 +815,7 @@ public:
     }
 
     std::string debug() const override {
-        return "'" + object->debug();
+        return "`" + object->debug();
     }
 };
 
