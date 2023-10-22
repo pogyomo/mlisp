@@ -1324,14 +1324,11 @@ std::shared_ptr<Object> fn_read_num(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_macro(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_setq(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_debug(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_defun(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_defmacro(const std::shared_ptr<List> args, Env& env);
 std::shared_ptr<Object> fn_macroexpand(const std::shared_ptr<List> args, Env& env);
 
 std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
@@ -2065,18 +2062,6 @@ std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env) {
     return a2;
 }
 
-std::shared_ptr<Object> fn_setq(const std::shared_ptr<List> args, Env& env) {
-    std::shared_ptr<Object> a1, a2;
-    TAKE_JUST_TWO_ARG("setq", args, a1, a2);
-
-    if (a1->kind() != ObjectKind::Symbol) {
-        throw EvalException("first argument of setq must be symbol");
-    }
-    auto name = std::static_pointer_cast<Symbol>(a1)->get_symbol();
-    env.set_obj(name, eval(a2, env));
-    return a2;
-}
-
 std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("int-to-string", args, env, a1);
@@ -2161,32 +2146,6 @@ std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env& env) {
         head = head->get_next();
     }
     return std::make_shared<String>(acc);
-}
-
-std::shared_ptr<Object> fn_defun(const std::shared_ptr<List> args, Env& env) {
-    std::shared_ptr<Object> a1;
-    TAKE_ONE_ARG("defun", args, a1);
-
-    if (a1->kind() != ObjectKind::Symbol) {
-        throw EvalException("first argument of defun must be symbol");
-    }
-
-    auto lambda = fn_lambda(args->get_next(), env);
-    env.set_obj(std::static_pointer_cast<Symbol>(a1)->get_symbol(), lambda);
-    return lambda;
-}
-
-std::shared_ptr<Object> fn_defmacro(const std::shared_ptr<List> args, Env& env) {
-    std::shared_ptr<Object> a1;
-    TAKE_ONE_ARG("defun", args, a1);
-
-    if (a1->kind() != ObjectKind::Symbol) {
-        throw EvalException("first argument of defmacro must be symbol");
-    }
-
-    auto macro = fn_macro(args->get_next(), env);
-    env.set_obj(std::static_pointer_cast<Symbol>(a1)->get_symbol(), macro);
-    return macro;
 }
 
 std::shared_ptr<Object> fn_macroexpand(const std::shared_ptr<List> args, Env& env) {
@@ -2292,17 +2251,18 @@ Env default_env() {
     env.set_obj("lambda", std::make_shared<FuncPtr>(fn_lambda));
     env.set_obj("macro", std::make_shared<FuncPtr>(fn_macro));
     env.set_obj("set", std::make_shared<FuncPtr>(fn_set));
-    env.set_obj("setq", std::make_shared<FuncPtr>(fn_setq));
     env.set_obj("int-to-string", std::make_shared<FuncPtr>(fn_int_to_string));
     env.set_obj("num-to-string", std::make_shared<FuncPtr>(fn_num_to_string));
     env.set_obj("debug", std::make_shared<FuncPtr>(fn_debug));
     env.set_obj("type-of", std::make_shared<FuncPtr>(fn_type_of));
     env.set_obj("concat", std::make_shared<FuncPtr>(fn_concat));
-    env.set_obj("defun", std::make_shared<FuncPtr>(fn_defun));
-    env.set_obj("defmacro", std::make_shared<FuncPtr>(fn_defmacro));
     env.set_obj("macroexpand", std::make_shared<FuncPtr>(fn_macroexpand));
     env.set_obj("T", GLOBAL_T);
     env.set_obj("NIL", GLOBAL_NIL);
+
+    run("(set 'setq (macro (name value) `(set ',name ,value)))" ,env);
+    run("(setq defmacro (macro (name args &body body) `(setq ,name (macro ,args ,@body))))", env);
+    run("(defmacro defun (name args &body body) `(setq ,name (lambda ,args ,@body)))", env);
 
     return env;
 }
