@@ -210,7 +210,7 @@ public:
 bool is_ident_head_elem(char c) noexcept {
     return isalpha(c) ||
            c == '+' || c == '-' || c == '*' || c == '/' ||
-           c == '=' || c == '<' || c == '>';
+           c == '=' || c == '<' || c == '>' || c == '&';
 }
 
 bool is_ident_tail_elem(char c) noexcept {
@@ -410,10 +410,6 @@ public:
 
     std::shared_ptr<List> get_next() {
         return next;
-    }
-
-    void set_value(const std::shared_ptr<Object> value) {
-        this->value = value;
     }
 
     ObjectKind kind() const override {
@@ -1258,7 +1254,7 @@ public:
     } while (0) \
 
 std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env);
-std::shared_ptr<Object> eval_backquoted(std::shared_ptr<Object> object, Env& env);
+std::shared_ptr<Object> eval_backquoted(const std::shared_ptr<Object>& object, Env& env);
 std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env);
 std::shared_ptr<Object> eval_symbol(const std::shared_ptr<Symbol>& symbol, Env& env);
 std::list<std::shared_ptr<Object>> expand_macro(
@@ -1365,35 +1361,41 @@ std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
     }
 }
 
-std::shared_ptr<Object> eval_backquoted(std::shared_ptr<Object> object, Env& env) {
+std::shared_ptr<Object> eval_backquoted(const std::shared_ptr<Object>& object, Env& env) {
     if (object->kind() != ObjectKind::List) {
         return object;
     }
 
     auto it = std::static_pointer_cast<List>(object);
+    std::list<std::shared_ptr<Object>> list;
     while (it != nullptr) {
         auto value = it->get_value();
         if (value->kind() == ObjectKind::Comma) {
             auto inner = std::static_pointer_cast<Comma>(value)->get_object();
-            it->set_value(eval(inner, env));
+            list.push_back(eval(inner, env));
         } else if (value->kind() == ObjectKind::CommaAtmark) {
-            auto inner = eval(std::static_pointer_cast<Comma>(value)->get_object(), env);
+            auto inner = eval(std::static_pointer_cast<CommaAtmark>(value)->get_object(), env);
             if (inner->kind() == ObjectKind::List) {
                 auto inner_it = std::static_pointer_cast<List>(inner);
-                it->set_value(inner_it->get_value());
-                inner_it = inner_it->get_next();
                 while (inner_it != nullptr) {
-                    it->insert(inner_it->get_value());
-                    it = it->get_next();
+                    list.push_back(inner_it->get_value());
                     inner_it = inner_it->get_next();
                 }
             } else {
-                it->set_value(inner);
+                list.push_back(inner);
             }
+        } else {
+            list.push_back(value);
         }
         it = it->get_next();
     }
-    return object;
+
+    auto list_it = list.begin();
+    auto result = std::make_shared<List>(*list_it++);
+    while (list_it != list.end()) {
+        result->append(std::make_shared<List>(*list_it++));
+    }
+    return result;
 }
 
 std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env) {
@@ -1431,17 +1433,40 @@ std::list<std::shared_ptr<Object>> expand_macro(
     }
 
     Env temp_env(env);
-    if (arg_list.size() != macro->get_params().size()) {
-        std::ostringstream ss;
-        ss << "different number of argument to macro: expect " << macro->get_params().size();
-        ss << ", but got " << arg_list.size();
-        throw EvalException(ss.str());
-    } else {
-        auto syms = macro->get_params().begin();
-        auto args = arg_list.begin();
-        while (syms != macro->get_params().end()) {
-            temp_env.set_obj((*syms)->get_symbol(), *args);
-            syms++; args++;
+    auto syms = macro->get_params().begin();
+    auto arg_it = arg_list.begin();
+    while (syms != macro->get_params().end()) {
+        if ((*syms)->get_symbol() == "&body") {
+            syms++;
+            if (syms == macro->get_params().end()) {
+                throw EvalException("symbol expected after &body");
+            }
+
+            if (arg_it == arg_list.end()) {
+                temp_env.set_obj((*syms)->get_symbol(), GLOBAL_NIL);
+                break;
+            }
+
+            auto body_list = std::make_shared<List>(*arg_it);
+            arg_it++;
+            while (arg_it != arg_list.end()) {
+                body_list->append(std::make_shared<List>(*arg_it));
+                arg_it++;
+            }
+
+            temp_env.set_obj((*syms)->get_symbol(), body_list);
+            syms++;
+
+            if (syms != macro->get_params().end()) {
+                throw EvalException("more than two symbol after &body is invalid");
+            }
+        } else {
+            if (arg_it != arg_list.end()) {
+                temp_env.set_obj((*syms)->get_symbol(), *arg_it);
+                syms++; arg_it++;
+            } else {
+                throw EvalException("invalid number of arguments for macro");
+            }
         }
     }
 
