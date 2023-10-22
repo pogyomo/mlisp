@@ -20,6 +20,9 @@ enum class TokenKind {
     LParen,
     RParen,
     Quote,
+    BackQuote,
+    Comma,
+    CommaAtmark,
     Ident,
     Integer,
     Number,
@@ -69,6 +72,45 @@ public:
 
     std::string debug() const override {
         return "'";
+    }
+};
+
+class BackQuoteToken : public Token {
+public:
+    BackQuoteToken() {}
+
+    TokenKind kind() const override {
+        return TokenKind::BackQuote;
+    }
+
+    std::string debug() const override {
+        return "`";
+    }
+};
+
+class CommaToken : public Token {
+public:
+    CommaToken() {}
+
+    TokenKind kind() const override {
+        return TokenKind::Comma;
+    }
+
+    std::string debug() const override {
+        return ",";
+    }
+};
+
+class CommaAtmarkToken : public Token {
+public:
+    CommaAtmarkToken() {}
+
+    TokenKind kind() const override {
+        return TokenKind::CommaAtmark;
+    }
+
+    std::string debug() const override {
+        return ",@";
     }
 };
 
@@ -186,6 +228,17 @@ std::shared_ptr<Token> token(std::string::const_iterator& it, const std::string:
     } else if (*it == '\'') {
         it++;
         return std::make_shared<QuoteToken>();
+    } else if (*it == '`') {
+        it++;
+        return std::make_shared<BackQuoteToken>();
+    } else if (*it == ',') {
+        it++;
+        if (it != last && *it == '@') {
+            it++;
+            return std::make_shared<CommaAtmarkToken>();
+        } else {
+            return std::make_shared<CommaToken>();
+        }
     } else if (is_ident_head_elem(*it)) {
         auto rit = it;
         while (rit != last && is_ident_tail_elem(*rit)) { rit++; }
@@ -255,6 +308,10 @@ enum class ObjectKind {
     Function,
     PartiallyAppliedFunction,
     Macro,
+    Quoted,
+    BackQuoted,
+    Comma,
+    CommaAtmark,
 
     // Objects which internally used and user can't create these object.
     FuncPtr,
@@ -331,6 +388,12 @@ public:
         it->next = list;
     }
 
+    void insert(std::shared_ptr<Object> value) {
+        auto obj = std::make_shared<List>(value);
+        obj->next = next;
+        next = obj;
+    }
+
     std::list<std::shared_ptr<Object>> to_list() {
         std::list<std::shared_ptr<Object>> list;
         auto it = shared_from_this();
@@ -347,6 +410,10 @@ public:
 
     std::shared_ptr<List> get_next() {
         return next;
+    }
+
+    void set_value(const std::shared_ptr<Object> value) {
+        this->value = value;
     }
 
     ObjectKind kind() const override {
@@ -704,6 +771,102 @@ public:
     }
 };
 
+class Quoted : public Object {
+private:
+    std::shared_ptr<Object> object;
+
+public:
+    Quoted(const std::shared_ptr<Object> object) : object(object) {}
+
+    std::shared_ptr<Object> get_object() {
+        return object;
+    }
+
+    ObjectKind kind() const override {
+        return ObjectKind::Quoted;
+    }
+
+    bool is_atom() const override {
+        return false;
+    }
+
+    std::string debug() const override {
+        return "'" + object->debug();
+    }
+};
+
+class BackQuoted : public Object {
+private:
+    std::shared_ptr<Object> object;
+
+public:
+    BackQuoted(const std::shared_ptr<Object> object) : object(object) {}
+
+    std::shared_ptr<Object> get_object() {
+        return object;
+    }
+
+    ObjectKind kind() const override {
+        return ObjectKind::BackQuoted;
+    }
+
+    bool is_atom() const override {
+        return false;
+    }
+
+    std::string debug() const override {
+        return "'" + object->debug();
+    }
+};
+
+class Comma : public Object {
+private:
+    std::shared_ptr<Object> object;
+
+public:
+    Comma(const std::shared_ptr<Object> object) : object(object) {}
+
+    std::shared_ptr<Object> get_object() {
+        return object;
+    }
+
+    ObjectKind kind() const override {
+        return ObjectKind::Comma;
+    }
+
+    bool is_atom() const override {
+        return false;
+    }
+
+    std::string debug() const override {
+        return "," + object->debug();
+    }
+};
+
+class CommaAtmark : public Object {
+private:
+    std::shared_ptr<Object> object;
+
+public:
+    CommaAtmark(const std::shared_ptr<Object> object) : object(object) {}
+
+    std::shared_ptr<Object> get_object() {
+        return object;
+    }
+
+    ObjectKind kind() const override {
+        return ObjectKind::CommaAtmark;
+    }
+
+    bool is_atom() const override {
+        return false;
+    }
+
+    std::string debug() const override {
+        return ",@" + object->debug();
+    }
+};
+
 static std::shared_ptr<T> GLOBAL_T = std::make_shared<T>();
 static std::shared_ptr<NIL> GLOBAL_NIL = std::make_shared<NIL>();
 
@@ -737,7 +900,19 @@ std::shared_ptr<Object> parse_list(
     std::vector<std::shared_ptr<Token>>::const_iterator& it,
     const std::vector<std::shared_ptr<Token>>::const_iterator& last
 );
-std::shared_ptr<List> parse_quote(
+std::shared_ptr<Quoted> parse_quote(
+    std::vector<std::shared_ptr<Token>>::const_iterator& it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator& last
+);
+std::shared_ptr<BackQuoted> parse_back_quote(
+    std::vector<std::shared_ptr<Token>>::const_iterator& it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator& last
+);
+std::shared_ptr<Comma> parse_comma(
+    std::vector<std::shared_ptr<Token>>::const_iterator& it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator& last
+);
+std::shared_ptr<CommaAtmark> parse_comma_atmark(
     std::vector<std::shared_ptr<Token>>::const_iterator& it,
     const std::vector<std::shared_ptr<Token>>::const_iterator& last
 );
@@ -773,6 +948,12 @@ std::shared_ptr<Object> parse_object(
             return parse_sym(it, last);
         case TokenKind::Quote:
             return parse_quote(it, last);
+        case TokenKind::BackQuote:
+            return parse_back_quote(it, last);
+        case TokenKind::Comma:
+            return parse_comma(it, last);
+        case TokenKind::CommaAtmark:
+            return parse_comma_atmark(it, last);
         default:
             std::ostringstream ss;
             ss << "unexpected token " << (*it)->debug();
@@ -884,7 +1065,7 @@ std::shared_ptr<Object> parse_list(
     }
 }
 
-std::shared_ptr<List> parse_quote(
+std::shared_ptr<Quoted> parse_quote(
     std::vector<std::shared_ptr<Token>>::const_iterator& it,
     const std::vector<std::shared_ptr<Token>>::const_iterator& last
 ) {
@@ -896,8 +1077,55 @@ std::shared_ptr<List> parse_quote(
         throw ParseException(ss.str());
     } else {
         it++;
-        const std::shared_ptr<Object> rest = parse_object(it, last);
-        return std::make_shared<List>(std::make_shared<Symbol>("quote"), std::make_shared<List>(rest));
+        return std::make_shared<Quoted>(parse_object(it, last));
+    }
+}
+
+std::shared_ptr<BackQuoted> parse_back_quote(
+    std::vector<std::shared_ptr<Token>>::const_iterator& it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator& last
+) {
+    if (it == last) {
+        throw ParseException("expected token, but not found");
+    } else if ((*it)->kind() != TokenKind::BackQuote) {
+        std::ostringstream ss;
+        ss << "unexpected token " << (*it)->debug() << " found: expected `";
+        throw ParseException(ss.str());
+    } else {
+        it++;
+        return std::make_shared<BackQuoted>(parse_object(it, last));
+    }
+}
+
+std::shared_ptr<Comma> parse_comma(
+    std::vector<std::shared_ptr<Token>>::const_iterator& it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator& last
+) {
+    if (it == last) {
+        throw ParseException("expected token, but not found");
+    } else if ((*it)->kind() != TokenKind::Comma) {
+        std::ostringstream ss;
+        ss << "unexpected token " << (*it)->debug() << " found: expected ,";
+        throw ParseException(ss.str());
+    } else {
+        it++;
+        return std::make_shared<Comma>(parse_object(it, last));
+    }
+}
+
+std::shared_ptr<CommaAtmark> parse_comma_atmark(
+    std::vector<std::shared_ptr<Token>>::const_iterator& it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator& last
+) {
+    if (it == last) {
+        throw ParseException("expected token, but not found");
+    } else if ((*it)->kind() != TokenKind::CommaAtmark) {
+        std::ostringstream ss;
+        ss << "unexpected token " << (*it)->debug() << " found: expected ,@";
+        throw ParseException(ss.str());
+    } else {
+        it++;
+        return std::make_shared<CommaAtmark>(parse_object(it, last));
     }
 }
 
@@ -1030,6 +1258,7 @@ public:
     } while (0) \
 
 std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env);
+std::shared_ptr<Object> eval_backquoted(std::shared_ptr<Object> object, Env& env);
 std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env);
 std::shared_ptr<Object> eval_symbol(const std::shared_ptr<Symbol>& symbol, Env& env);
 std::list<std::shared_ptr<Object>> expand_macro(
@@ -1114,56 +1343,78 @@ std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
         case ObjectKind::Integer:
         case ObjectKind::Number:
         case ObjectKind::String:
+        case ObjectKind::Function:
+        case ObjectKind::FuncPtr:
+        case ObjectKind::PartiallyAppliedFunction:
+        case ObjectKind::PartiallyAppliedFuncPtr:
+        case ObjectKind::Macro:
             return object;
         case ObjectKind::List:
             return eval_list(std::static_pointer_cast<List>(object), env);
         case ObjectKind::Symbol:
             return eval_symbol(std::static_pointer_cast<Symbol>(object), env);
+        case ObjectKind::Quoted:
+            return std::static_pointer_cast<Quoted>(object)->get_object();
+        case ObjectKind::BackQuoted:
+            return eval_backquoted(std::static_pointer_cast<BackQuoted>(object)->get_object(), env);
+        case ObjectKind::Comma:
+        case ObjectKind::CommaAtmark:
+            throw EvalException("comma is invalid outside of backquote");
         default:
-            // unreachable
-            exit(1);
+            throw EvalException("unreachable");
     }
 }
 
+std::shared_ptr<Object> eval_backquoted(std::shared_ptr<Object> object, Env& env) {
+    if (object->kind() != ObjectKind::List) {
+        return object;
+    }
+
+    auto it = std::static_pointer_cast<List>(object);
+    while (it != nullptr) {
+        auto value = it->get_value();
+        if (value->kind() == ObjectKind::Comma) {
+            auto inner = std::static_pointer_cast<Comma>(value)->get_object();
+            it->set_value(eval(inner, env));
+        } else if (value->kind() == ObjectKind::CommaAtmark) {
+            auto inner = eval(std::static_pointer_cast<Comma>(value)->get_object(), env);
+            if (inner->kind() == ObjectKind::List) {
+                auto inner_it = std::static_pointer_cast<List>(inner);
+                it->set_value(inner_it->get_value());
+                inner_it = inner_it->get_next();
+                while (inner_it != nullptr) {
+                    it->insert(inner_it->get_value());
+                    it = it->get_next();
+                    inner_it = inner_it->get_next();
+                }
+            } else {
+                it->set_value(inner);
+            }
+        }
+        it = it->get_next();
+    }
+    return object;
+}
+
 std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env) {
-    auto head = list->get_value();
-    if (head->kind() == ObjectKind::Symbol) {
-        auto name = std::static_pointer_cast<Symbol>(head)->get_symbol();
-        auto obj = env.get_obj(name);
-        if (obj->kind() == ObjectKind::FuncPtr) {
-            auto func = std::static_pointer_cast<FuncPtr>(obj);
-            return apply_func_ptr(func, list->get_next(), env);
-        } else if (obj->kind() == ObjectKind::Function) {
-            return apply_func(std::static_pointer_cast<Function>(obj), list->get_next(), env);
-        } else if (obj->kind() == ObjectKind::PartiallyAppliedFuncPtr) {
-            auto func = std::static_pointer_cast<PartiallyAppliedFuncPtr>(obj);
-            return apply_part_func_ptr(func, list->get_next(), env);
-        } else if (obj->kind() == ObjectKind::PartiallyAppliedFunction) {
-            auto func = std::static_pointer_cast<PartiallyAppliedFunction>(obj);
-            return apply_part_func(func, list->get_next(), env);
-        } else if (obj->kind() == ObjectKind::Macro) {
-            auto macro = std::static_pointer_cast<Macro>(obj);
-            return apply_macro(macro, list->get_next(), env);
-        } else {
-            throw EvalException("first symbol must be callable");
-        }
+    auto first = eval(list->get_value(), env);
+    if (first->kind() == ObjectKind::Function) {
+        auto func = std::static_pointer_cast<Function>(first);
+        return apply_func(func, list->get_next(), env);
+    } else if (first->kind() == ObjectKind::FuncPtr) {
+        auto func = std::static_pointer_cast<FuncPtr>(first);
+        return apply_func_ptr(func, list->get_next(), env);
+    } else if (first->kind() == ObjectKind::PartiallyAppliedFunction) {
+        auto func = std::static_pointer_cast<PartiallyAppliedFunction>(first);
+        return apply_part_func(func, list->get_next(), env);
+    } else if (first->kind() == ObjectKind::PartiallyAppliedFuncPtr) {
+        auto func = std::static_pointer_cast<PartiallyAppliedFuncPtr>(first);
+        return apply_part_func_ptr(func, list->get_next(), env);
+    } else if (first->kind() == ObjectKind::Macro) {
+        auto macro = std::static_pointer_cast<Macro>(first);
+        return apply_macro(macro, list->get_next(), env);
     } else {
-        auto obj = eval(head, env);
-        if (obj->kind() == ObjectKind::Function) {
-            auto func = std::static_pointer_cast<Function>(obj);
-            return apply_func(func, list->get_next(), env);
-        } else if (obj->kind() == ObjectKind::PartiallyAppliedFunction) {
-            auto func = std::static_pointer_cast<PartiallyAppliedFunction>(obj);
-            return apply_part_func(func, list->get_next(), env);
-        } else if (obj->kind() == ObjectKind::PartiallyAppliedFuncPtr) {
-            auto func = std::static_pointer_cast<PartiallyAppliedFuncPtr>(obj);
-            return apply_part_func_ptr(func, list->get_next(), env);
-        } else if (obj->kind() == ObjectKind::Macro) {
-            auto macro = std::static_pointer_cast<Macro>(obj);
-            return apply_macro(macro, list->get_next(), env);
-        } else {
-            throw EvalException("first object of list must be function or symbol");
-        }
+        throw EvalException("first object of list must be function or symbol");
     }
 }
 
