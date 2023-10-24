@@ -1449,8 +1449,10 @@ void assign_macro_sym(
     const std::list<std::shared_ptr<Object>>::iterator& arg_last,
     Env& env
 ) {
-    assert(sym_it != sym_last);
-    assert(arg_it != arg_last);
+    if (sym_it == sym_last) {
+        throw EvalException("too many arguments for macro");
+    }
+
     if ((*sym_it)->get_symbol() == "&body") {
         sym_it++;
         if (sym_it == sym_last) {
@@ -1458,7 +1460,7 @@ void assign_macro_sym(
         }
 
         if (arg_it == arg_last) {
-            env.set_obj((*sym_it)->get_symbol(), GLOBAL_NIL);
+            env.set_obj((*sym_it++)->get_symbol(), GLOBAL_NIL);
             return;
         }
 
@@ -1472,11 +1474,26 @@ void assign_macro_sym(
         if (sym_it != sym_last) {
             throw EvalException("more than two symbol after &body is invalid");
         }
+    } else if ((*sym_it)->get_symbol() == "&optional") {
+        sym_it++;
+        if (sym_it == sym_last) {
+            throw EvalException("symbol expected after &optional");
+        }
+
+        while (sym_it != sym_last) {
+            if (arg_it == arg_last) {
+                env.set_obj((*sym_it++)->get_symbol(), GLOBAL_NIL);
+            } else {
+                env.set_obj((*sym_it++)->get_symbol(), *arg_it++);
+            }
+        }
     } else {
         if (arg_it != arg_last) {
             env.set_obj((*sym_it++)->get_symbol(), *arg_it++);
         } else {
-            throw EvalException("invalid number of arguments for macro");
+            std::ostringstream ss;
+            ss << "no object correspond with " << (*sym_it)->get_symbol();
+            throw EvalException(ss.str());
         }
     }
 }
@@ -1498,15 +1515,8 @@ std::list<std::shared_ptr<Object>> expand_macro(
     const auto sym_last = macro->get_params().end();
     auto arg_it = arg_list.begin();
     const auto arg_last = arg_list.end();
-    while (true) {
+    while (sym_it != sym_last || arg_it != arg_last) {
         assign_macro_sym(sym_it, sym_last, arg_it, arg_last, temp_env);
-        if (sym_it != sym_last && arg_it == arg_last) {
-            throw EvalException("too few arguments for macro");
-        } else if (sym_it == sym_last && arg_it != arg_last) {
-            throw EvalException("too many arguments for macro");
-        } else if (sym_it == sym_last && arg_it == arg_last) {
-            break;
-        }
     }
 
     std::list<std::shared_ptr<Object>> list;
