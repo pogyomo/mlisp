@@ -2218,23 +2218,26 @@ std::shared_ptr<Object> fn_macroexpand(const std::shared_ptr<List> args, Env& en
 }
 
 std::istream& prompt(std::istream& is, const std::string& msg, std::string& input) {
-    std::cout << msg << ": " << std::flush;
+    std::cout << msg << " " << std::flush;
     return std::getline(is, input);
 }
 
 void interpreter(Env& env) {
     std::string input;
     std::cout << "press CTRL-D to exit from this interpreter" << std::endl;
-    while (prompt(std::cin, "input", input)) {
+    int line = 1;
+    while (prompt(std::cin, "[" + std::to_string(line) + "]>", input)) {
         try {
             auto tokens = lex(input);
             auto objs = parse(tokens);
             for (const auto& obj : objs) {
                 std::cout << eval(obj, env)->debug() << std::endl;
             }
+            line++;
         } catch (std::exception& e) {
             std::cerr << e.what() << std::endl;
         }
+        std::cout << std::endl;
     }
 }
 
