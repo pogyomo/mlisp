@@ -2162,6 +2162,16 @@ std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env) {
             return std::make_shared<String>("PartiallyAppliedFunction");
         case ObjectKind::PartiallyAppliedFuncPtr:
             return std::make_shared<String>("PartiallyAppliedFuncPtr");
+        case ObjectKind::Macro:
+            return std::make_shared<String>("Macro");
+        case ObjectKind::Quoted:
+            return std::make_shared<String>("Quoted");
+        case ObjectKind::BackQuoted:
+            return std::make_shared<String>("BackQuoted");
+        case ObjectKind::Comma:
+            return std::make_shared<String>("Comma");
+        case ObjectKind::CommaAtmark:
+            return std::make_shared<String>("CommaAtmark");
         default:
             throw EvalException("unreachable");
     }
