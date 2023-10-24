@@ -1398,7 +1398,7 @@ std::shared_ptr<Object> eval_backquoted_list(const std::shared_ptr<List>& list, 
                     objs.push_back(inner_it->get_value());
                     inner_it = inner_it->get_next();
                 }
-            } else {
+            } else if (inner->kind() != ObjectKind::NIL) {
                 objs.push_back(inner);
             }
         } else if (object->kind() == ObjectKind::Quoted) {
@@ -1411,6 +1411,11 @@ std::shared_ptr<Object> eval_backquoted_list(const std::shared_ptr<List>& list, 
         }
         list_it = list_it->get_next();
     }
+
+    if (objs.empty()) {
+        return GLOBAL_NIL;
+    }
+
     auto new_list = std::make_shared<List>(objs.front());
     objs.pop_front();
     while (!objs.empty()) {
@@ -1615,6 +1620,10 @@ std::shared_ptr<Object> fn_quote(const std::shared_ptr<List> args, Env& env) {
 }
 
 std::shared_ptr<Object> fn_list(const std::shared_ptr<List> args, Env& env) {
+    if (args == nullptr) {
+        return GLOBAL_NIL;
+    }
+
     std::shared_ptr<Object> a1;
     EVAL_ONE_ARG("list", args, env, a1);
 
