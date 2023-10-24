@@ -1259,6 +1259,13 @@ std::shared_ptr<Object> eval_backquoted_list(const std::shared_ptr<List>& list, 
 std::list<std::shared_ptr<Object>> eval_backquoted_inner(const std::shared_ptr<Object>& object, Env& env);
 std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env);
 std::shared_ptr<Object> eval_symbol(const std::shared_ptr<Symbol>& symbol, Env& env);
+void assign_macro_sym(
+    std::list<std::shared_ptr<Symbol>>::iterator& sym_it,
+    const std::list<std::shared_ptr<Symbol>>::iterator& sym_last,
+    std::list<std::shared_ptr<Object>>::iterator& arg_it,
+    const std::list<std::shared_ptr<Object>>::iterator& arg_last,
+    Env& env
+);
 std::list<std::shared_ptr<Object>> expand_macro(
     const std::shared_ptr<Macro> macro,
     const std::shared_ptr<List> args,
@@ -1435,6 +1442,45 @@ std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env) {
     }
 }
 
+void assign_macro_sym(
+    std::list<std::shared_ptr<Symbol>>::iterator& sym_it,
+    const std::list<std::shared_ptr<Symbol>>::iterator& sym_last,
+    std::list<std::shared_ptr<Object>>::iterator& arg_it,
+    const std::list<std::shared_ptr<Object>>::iterator& arg_last,
+    Env& env
+) {
+    assert(sym_it != sym_last);
+    assert(arg_it != arg_last);
+    if ((*sym_it)->get_symbol() == "&body") {
+        sym_it++;
+        if (sym_it == sym_last) {
+            throw EvalException("symbol expected after &body");
+        }
+
+        if (arg_it == arg_last) {
+            env.set_obj((*sym_it)->get_symbol(), GLOBAL_NIL);
+            return;
+        }
+
+        auto body_list = std::make_shared<List>(*arg_it++);
+        while (arg_it != arg_last) {
+            body_list->append(std::make_shared<List>(*arg_it++));
+        }
+
+        env.set_obj((*sym_it++)->get_symbol(), body_list);
+
+        if (sym_it != sym_last) {
+            throw EvalException("more than two symbol after &body is invalid");
+        }
+    } else {
+        if (arg_it != arg_last) {
+            env.set_obj((*sym_it++)->get_symbol(), *arg_it++);
+        } else {
+            throw EvalException("invalid number of arguments for macro");
+        }
+    }
+}
+
 std::list<std::shared_ptr<Object>> expand_macro(
     const std::shared_ptr<Macro> macro,
     const std::shared_ptr<List> args,
@@ -1448,40 +1494,18 @@ std::list<std::shared_ptr<Object>> expand_macro(
     }
 
     Env temp_env(env);
-    auto syms = macro->get_params().begin();
+    auto sym_it = macro->get_params().begin();
+    const auto sym_last = macro->get_params().end();
     auto arg_it = arg_list.begin();
-    while (syms != macro->get_params().end()) {
-        if ((*syms)->get_symbol() == "&body") {
-            syms++;
-            if (syms == macro->get_params().end()) {
-                throw EvalException("symbol expected after &body");
-            }
-
-            if (arg_it == arg_list.end()) {
-                temp_env.set_obj((*syms)->get_symbol(), GLOBAL_NIL);
-                break;
-            }
-
-            auto body_list = std::make_shared<List>(*arg_it);
-            arg_it++;
-            while (arg_it != arg_list.end()) {
-                body_list->append(std::make_shared<List>(*arg_it));
-                arg_it++;
-            }
-
-            temp_env.set_obj((*syms)->get_symbol(), body_list);
-            syms++;
-
-            if (syms != macro->get_params().end()) {
-                throw EvalException("more than two symbol after &body is invalid");
-            }
-        } else {
-            if (arg_it != arg_list.end()) {
-                temp_env.set_obj((*syms)->get_symbol(), *arg_it);
-                syms++; arg_it++;
-            } else {
-                throw EvalException("invalid number of arguments for macro");
-            }
+    const auto arg_last = arg_list.end();
+    while (true) {
+        assign_macro_sym(sym_it, sym_last, arg_it, arg_last, temp_env);
+        if (sym_it != sym_last && arg_it == arg_last) {
+            throw EvalException("too few arguments for macro");
+        } else if (sym_it == sym_last && arg_it != arg_last) {
+            throw EvalException("too many arguments for macro");
+        } else if (sym_it == sym_last && arg_it == arg_last) {
+            break;
         }
     }
 
