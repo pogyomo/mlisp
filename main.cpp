@@ -2,16 +2,15 @@
 #include <cassert>
 #include <cctype>
 #include <cstdlib>
-#include <cstring>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <istream>
 #include <iterator>
-#include <sstream>
 #include <list>
 #include <map>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -39,79 +38,43 @@ public:
 class LParenToken : public Token {
 public:
     LParenToken() {}
-
-    TokenKind kind() const override {
-        return TokenKind::LParen;
-    }
-
-    std::string debug() const override {
-        return "(";
-    }
+    TokenKind kind() const override { return TokenKind::LParen; }
+    std::string debug() const override { return "("; }
 };
 
 class RParenToken : public Token {
 public:
     RParenToken() {}
-
-    TokenKind kind() const override {
-        return TokenKind::RParen;
-    }
-
-    std::string debug() const override {
-        return ")";
-    }
+    TokenKind kind() const override { return TokenKind::RParen; }
+    std::string debug() const override { return ")"; }
 };
 
 class QuoteToken : public Token {
 public:
     QuoteToken() {}
-
-    TokenKind kind() const override {
-        return TokenKind::Quote;
-    }
-
-    std::string debug() const override {
-        return "'";
-    }
+    TokenKind kind() const override { return TokenKind::Quote; }
+    std::string debug() const override { return "'"; }
 };
 
 class BackQuoteToken : public Token {
 public:
     BackQuoteToken() {}
-
-    TokenKind kind() const override {
-        return TokenKind::BackQuote;
-    }
-
-    std::string debug() const override {
-        return "`";
-    }
+    TokenKind kind() const override { return TokenKind::BackQuote; }
+    std::string debug() const override { return "`"; }
 };
 
 class CommaToken : public Token {
 public:
     CommaToken() {}
-
-    TokenKind kind() const override {
-        return TokenKind::Comma;
-    }
-
-    std::string debug() const override {
-        return ",";
-    }
+    TokenKind kind() const override { return TokenKind::Comma; }
+    std::string debug() const override { return ","; }
 };
 
 class CommaAtmarkToken : public Token {
 public:
     CommaAtmarkToken() {}
-
-    TokenKind kind() const override {
-        return TokenKind::CommaAtmark;
-    }
-
-    std::string debug() const override {
-        return ",@";
-    }
+    TokenKind kind() const override { return TokenKind::CommaAtmark; }
+    std::string debug() const override { return ",@"; }
 };
 
 class IdentToken : public Token {
@@ -119,21 +82,10 @@ private:
     std::string ident;
 
 public:
-    IdentToken(const std::string& ident) {
-        this->ident = ident;
-    }
-
-    std::string& get_ident() {
-        return ident;
-    }
-
-    TokenKind kind() const override {
-        return TokenKind::Ident;
-    }
-
-    std::string debug() const override {
-        return ident;
-    }
+    IdentToken(const std::string &ident) { this->ident = ident; }
+    std::string &get_ident() { return ident; }
+    TokenKind kind() const override { return TokenKind::Ident; }
+    std::string debug() const override { return ident; }
 };
 
 class IntegerToken : public Token {
@@ -141,21 +93,10 @@ private:
     int integer;
 
 public:
-    IntegerToken(int integer) {
-        this->integer = integer;
-    }
-
-    int get_integer() {
-        return integer;
-    }
-
-    TokenKind kind() const override {
-        return TokenKind::Integer;
-    }
-
-    std::string debug() const override {
-        return std::to_string(integer);
-    }
+    IntegerToken(int integer) { this->integer = integer; }
+    int get_integer() { return integer; }
+    TokenKind kind() const override { return TokenKind::Integer; }
+    std::string debug() const override { return std::to_string(integer); }
 };
 
 class NumberToken : public Token {
@@ -163,21 +104,10 @@ private:
     double number;
 
 public:
-    NumberToken(double number) {
-        this->number = number;
-    }
-
-    double get_number() {
-        return number;
-    }
-
-    TokenKind kind() const override {
-        return TokenKind::Number;
-    }
-
-    std::string debug() const override {
-        return std::to_string(number);
-    }
+    NumberToken(double number) { this->number = number; }
+    double get_number() { return number; }
+    TokenKind kind() const override { return TokenKind::Number; }
+    std::string debug() const override { return std::to_string(number); }
 };
 
 class StringToken : public Token {
@@ -185,31 +115,19 @@ private:
     std::string string;
 
 public:
-    StringToken(const std::string& string) {
-        this->string = string;
-    }
-
-    std::string& get_string() {
-        return string;
-    }
-
-    TokenKind kind() const override {
-        return TokenKind::String;
-    }
-
-    std::string debug() const override {
-        return "\"" + string + "\"";
-    }
+    StringToken(const std::string &string) { this->string = string; }
+    std::string &get_string() { return string; }
+    TokenKind kind() const override { return TokenKind::String; }
+    std::string debug() const override { return "\"" + string + "\""; }
 };
 
 class LexException : public std::runtime_error {
 public:
-    LexException(const std::string& msg) : std::runtime_error(msg) {}
+    LexException(const std::string &msg) : std::runtime_error(msg) {}
 };
 
 bool is_ident_head_elem(char c) noexcept {
-    return isalpha(c) ||
-           c == '+' || c == '-' || c == '*' || c == '/' ||
+    return isalpha(c) || c == '+' || c == '-' || c == '*' || c == '/' ||
            c == '=' || c == '<' || c == '>' || c == '&';
 }
 
@@ -217,7 +135,8 @@ bool is_ident_tail_elem(char c) noexcept {
     return isdigit(c) || is_ident_head_elem(c);
 }
 
-std::shared_ptr<Token> token(std::string::const_iterator& it, const std::string::const_iterator& last) {
+std::shared_ptr<Token> token(std::string::const_iterator &it,
+                             const std::string::const_iterator &last) {
     assert(it != last);
     if (*it == '(') {
         it++;
@@ -241,27 +160,37 @@ std::shared_ptr<Token> token(std::string::const_iterator& it, const std::string:
         }
     } else if (is_ident_head_elem(*it)) {
         auto rit = it;
-        while (rit != last && is_ident_tail_elem(*rit)) { rit++; }
+        while (rit != last && is_ident_tail_elem(*rit)) {
+            rit++;
+        }
         auto token = std::make_shared<IdentToken>(std::string(it, rit));
         it = rit;
         return token;
     } else if (*it == '"') {
         auto rit = ++it;
-        while (rit != last && *rit != '"') { rit++; }
+        while (rit != last && *rit != '"') {
+            rit++;
+        }
         auto token = std::make_shared<StringToken>(std::string(it, rit));
         it = rit + 1;
         return token;
     } else if (isdigit(*it)) {
         auto rit = it;
-        while (rit != last && isdigit(*rit)) { rit++; }
+        while (rit != last && isdigit(*rit)) {
+            rit++;
+        }
         if (rit != last && *rit == '.') {
             rit++;
-            while (rit != last && isdigit(*rit)) { rit++; }
-            auto token = std::make_shared<NumberToken>(std::stod(std::string(it, rit)));
+            while (rit != last && isdigit(*rit)) {
+                rit++;
+            }
+            auto token =
+                std::make_shared<NumberToken>(std::stod(std::string(it, rit)));
             it = rit;
             return token;
         } else {
-            auto token = std::make_shared<IntegerToken>(std::stoi(std::string(it, rit)));
+            auto token =
+                std::make_shared<IntegerToken>(std::stoi(std::string(it, rit)));
             it = rit;
             return token;
         }
@@ -272,16 +201,19 @@ std::shared_ptr<Token> token(std::string::const_iterator& it, const std::string:
     }
 }
 
-bool skip_whitespaces(std::string::const_iterator& it, const std::string::const_iterator& last) {
+bool skip_whitespaces(std::string::const_iterator &it,
+                      const std::string::const_iterator &last) {
     if (it != last && isspace(*it)) {
-        while (it != last && isspace(*it)) { it++; }
+        while (it != last && isspace(*it)) {
+            it++;
+        }
         return true;
     } else {
         return false;
     }
 }
 
-std::vector<std::shared_ptr<Token>> lex(const std::string& input) {
+std::vector<std::shared_ptr<Token>> lex(const std::string &input) {
     std::vector<std::shared_ptr<Token>> tokens;
     auto it = input.begin();
     const auto last = input.end();
@@ -328,28 +260,25 @@ public:
 
 class EnvException : public std::runtime_error {
 public:
-    EnvException(const std::string& msg) : std::runtime_error(msg) {}
+    EnvException(const std::string &msg) : std::runtime_error(msg) {}
 };
 
-// This use `Object` and `FuncPtr` use this, so this must be placed between `Object` and `FuncPtr`.
+// This use `Object` and `FuncPtr` use this, so this must be placed between
+// `Object` and `FuncPtr`.
 class Env {
 private:
     std::map<std::string, std::shared_ptr<Object>> symtable;
     std::shared_ptr<Env> outer;
 
 public:
-    Env() {
-        this->outer = nullptr;
-    }
+    Env() { this->outer = nullptr; }
 
-    Env(std::shared_ptr<Env> outer) {
-        this->outer = outer;
-    }
+    Env(std::shared_ptr<Env> outer) { this->outer = outer; }
 
-    std::shared_ptr<Object> get_obj(const std::string& sym) {
+    std::shared_ptr<Object> get_obj(const std::string &sym) {
         try {
             return symtable.at(sym);
-        } catch (std::out_of_range& _) {
+        } catch (std::out_of_range &_) {
             if (outer != nullptr) {
                 return outer->get_obj(sym);
             } else {
@@ -358,7 +287,7 @@ public:
         }
     }
 
-    void set_obj(const std::string& sym, const std::shared_ptr<Object> obj) {
+    void set_obj(const std::string &sym, const std::shared_ptr<Object> obj) {
         symtable[sym] = obj;
     }
 };
@@ -404,21 +333,13 @@ public:
         return list;
     }
 
-    std::shared_ptr<Object> get_value() {
-        return value;
-    }
+    std::shared_ptr<Object> get_value() { return value; }
 
-    std::shared_ptr<List> get_next() {
-        return next;
-    }
+    std::shared_ptr<List> get_next() { return next; }
 
-    ObjectKind kind() const override {
-        return ObjectKind::List;
-    }
+    ObjectKind kind() const override { return ObjectKind::List; }
 
-    bool is_atom() const override {
-        return false;
-    }
+    bool is_atom() const override { return false; }
 
     std::string debug() const override {
         std::string s = "(";
@@ -433,32 +354,20 @@ public:
 
 class T : public Object {
 public:
-    ObjectKind kind() const override {
-        return ObjectKind::T;
-    }
+    ObjectKind kind() const override { return ObjectKind::T; }
 
-    bool is_atom() const override {
-        return true;
-    }
+    bool is_atom() const override { return true; }
 
-    std::string debug() const override {
-        return "T";
-    }
+    std::string debug() const override { return "T"; }
 };
 
 class NIL : public Object {
 public:
-    ObjectKind kind() const override {
-        return ObjectKind::NIL;
-    }
+    ObjectKind kind() const override { return ObjectKind::NIL; }
 
-    bool is_atom() const override {
-        return true;
-    }
+    bool is_atom() const override { return true; }
 
-    std::string debug() const override {
-        return "NIL";
-    }
+    std::string debug() const override { return "NIL"; }
 };
 
 class Integer : public Object {
@@ -466,25 +375,15 @@ private:
     int integer;
 
 public:
-    Integer(int integer) {
-        this->integer = integer;
-    }
+    Integer(int integer) { this->integer = integer; }
 
-    int get_integer() {
-        return integer;
-    }
+    int get_integer() { return integer; }
 
-    ObjectKind kind() const override {
-        return ObjectKind::Integer;
-    }
+    ObjectKind kind() const override { return ObjectKind::Integer; }
 
-    bool is_atom() const override {
-        return true;
-    }
+    bool is_atom() const override { return true; }
 
-    std::string debug() const override {
-        return std::to_string(integer);
-    }
+    std::string debug() const override { return std::to_string(integer); }
 };
 
 class Number : public Object {
@@ -492,25 +391,15 @@ private:
     double number;
 
 public:
-    Number(double number) {
-        this->number = number;
-    }
+    Number(double number) { this->number = number; }
 
-    double get_number() {
-        return number;
-    }
+    double get_number() { return number; }
 
-    ObjectKind kind() const override {
-        return ObjectKind::Number;
-    }
+    ObjectKind kind() const override { return ObjectKind::Number; }
 
-    bool is_atom() const override {
-        return true;
-    }
+    bool is_atom() const override { return true; }
 
-    std::string debug() const override {
-        return std::to_string(number);
-    }
+    std::string debug() const override { return std::to_string(number); }
 };
 
 class String : public Object {
@@ -518,25 +407,15 @@ private:
     std::string string;
 
 public:
-    String(std::string string) {
-        this->string = string;
-    }
+    String(std::string string) { this->string = string; }
 
-    std::string& get_string() {
-        return string;
-    }
+    std::string &get_string() { return string; }
 
-    ObjectKind kind() const override {
-        return ObjectKind::String;
-    }
+    ObjectKind kind() const override { return ObjectKind::String; }
 
-    bool is_atom() const override {
-        return true;
-    }
+    bool is_atom() const override { return true; }
 
-    std::string debug() const override {
-        return "\"" + string + "\"";
-    }
+    std::string debug() const override { return "\"" + string + "\""; }
 };
 
 class Symbol : public Object {
@@ -544,25 +423,15 @@ private:
     std::string symbol;
 
 public:
-    Symbol(std::string symbol) {
-        this->symbol = symbol;
-    }
+    Symbol(std::string symbol) { this->symbol = symbol; }
 
-    std::string& get_symbol() {
-        return symbol;
-    }
+    std::string &get_symbol() { return symbol; }
 
-    ObjectKind kind() const override {
-        return ObjectKind::Symbol;
-    }
+    ObjectKind kind() const override { return ObjectKind::Symbol; }
 
-    bool is_atom() const override {
-        return true;
-    }
+    bool is_atom() const override { return true; }
 
-    std::string debug() const override {
-        return symbol;
-    }
+    std::string debug() const override { return symbol; }
 };
 
 class Function : public Object {
@@ -571,26 +440,19 @@ private:
     std::list<std::shared_ptr<Object>> body;
 
 public:
-    Function(std::list<std::shared_ptr<Symbol>> params, std::list<std::shared_ptr<Object>> body) {
+    Function(std::list<std::shared_ptr<Symbol>> params,
+             std::list<std::shared_ptr<Object>> body) {
         this->params = params;
         this->body = body;
     }
 
-    std::list<std::shared_ptr<Symbol>>& get_params() {
-        return params;
-    }
+    std::list<std::shared_ptr<Symbol>> &get_params() { return params; }
 
-    std::list<std::shared_ptr<Object>>& get_body() {
-        return body;
-    }
+    std::list<std::shared_ptr<Object>> &get_body() { return body; }
 
-    ObjectKind kind() const override {
-        return ObjectKind::Function;
-    }
+    ObjectKind kind() const override { return ObjectKind::Function; }
 
-    bool is_atom() const override {
-        return false;
-    }
+    bool is_atom() const override { return false; }
 
     std::string debug() const override {
         std::ostringstream ss;
@@ -605,7 +467,7 @@ public:
             }
         }
         ss << ")";
-        for (const auto& body : body) {
+        for (const auto &body : body) {
             ss << " " << body->debug();
         }
         std::string s = ss.str();
@@ -624,31 +486,26 @@ public:
         this->args = {};
     }
 
-    PartiallyAppliedFunction(std::shared_ptr<Function> func, std::shared_ptr<List> args) {
+    PartiallyAppliedFunction(std::shared_ptr<Function> func,
+                             std::shared_ptr<List> args) {
         this->func = func;
         this->args = args;
     }
 
-    std::shared_ptr<Function> get_func() {
-        return func;
-    }
+    std::shared_ptr<Function> get_func() { return func; }
 
-    std::shared_ptr<List>& get_args() {
-        return args;
-    }
+    std::shared_ptr<List> &get_args() { return args; }
 
     ObjectKind kind() const override {
         return ObjectKind::PartiallyAppliedFunction;
     }
 
-    bool is_atom() const override {
-        return false;
-    }
+    bool is_atom() const override { return false; }
 
     std::string debug() const override {
         std::string s = func->debug();
         auto arg_it = args;
-        while(arg_it != nullptr) {
+        while (arg_it != nullptr) {
             s += " " + arg_it->get_value()->debug();
             arg_it = arg_it->get_next();
         }
@@ -658,28 +515,26 @@ public:
 
 class FuncPtr : public Object {
 private:
-    std::function<std::shared_ptr<Object>(const std::shared_ptr<List>, Env&)> func;
+    std::function<std::shared_ptr<Object>(const std::shared_ptr<List>, Env &)>
+        func;
 
 public:
-    FuncPtr(std::function<std::shared_ptr<Object>(const std::shared_ptr<List>, Env&)> func) {
+    FuncPtr(std::function<std::shared_ptr<Object>(const std::shared_ptr<List>,
+                                                  Env &)>
+                func) {
         this->func = func;
     }
 
-    std::function<std::shared_ptr<Object>(const std::shared_ptr<List>, Env&)>& get_func() {
+    std::function<std::shared_ptr<Object>(const std::shared_ptr<List>, Env &)> &
+    get_func() {
         return func;
     };
 
-    ObjectKind kind() const override {
-        return ObjectKind::FuncPtr;
-    }
+    ObjectKind kind() const override { return ObjectKind::FuncPtr; }
 
-    bool is_atom() const override {
-        return false;
-    }
+    bool is_atom() const override { return false; }
 
-    std::string debug() const override {
-        return "buildin function";
-    }
+    std::string debug() const override { return "buildin function"; }
 };
 
 class PartiallyAppliedFuncPtr : public Object {
@@ -693,26 +548,21 @@ public:
         this->args = {};
     }
 
-    PartiallyAppliedFuncPtr(std::shared_ptr<FuncPtr> func, std::shared_ptr<List> args) {
+    PartiallyAppliedFuncPtr(std::shared_ptr<FuncPtr> func,
+                            std::shared_ptr<List> args) {
         this->func = func;
         this->args = args;
     }
 
-    std::shared_ptr<FuncPtr> get_func() {
-        return func;
-    }
+    std::shared_ptr<FuncPtr> get_func() { return func; }
 
-    std::shared_ptr<List> get_args() {
-        return args;
-    }
+    std::shared_ptr<List> get_args() { return args; }
 
     ObjectKind kind() const override {
         return ObjectKind::PartiallyAppliedFuncPtr;
     }
 
-    bool is_atom() const override {
-        return false;
-    }
+    bool is_atom() const override { return false; }
 
     std::string debug() const override {
         return "partially applied buildin function";
@@ -725,26 +575,19 @@ private:
     std::list<std::shared_ptr<Object>> body;
 
 public:
-    Macro(std::list<std::shared_ptr<Symbol>> params, std::list<std::shared_ptr<Object>> body) {
+    Macro(std::list<std::shared_ptr<Symbol>> params,
+          std::list<std::shared_ptr<Object>> body) {
         this->params = params;
         this->body = body;
     }
 
-    std::list<std::shared_ptr<Symbol>>& get_params() {
-        return params;
-    }
+    std::list<std::shared_ptr<Symbol>> &get_params() { return params; }
 
-    std::list<std::shared_ptr<Object>>& get_body() {
-        return body;
-    }
+    std::list<std::shared_ptr<Object>> &get_body() { return body; }
 
-    ObjectKind kind() const override {
-        return ObjectKind::Macro;
-    }
+    ObjectKind kind() const override { return ObjectKind::Macro; }
 
-    bool is_atom() const override {
-        return false;
-    }
+    bool is_atom() const override { return false; }
 
     std::string debug() const override {
         std::ostringstream ss;
@@ -759,7 +602,7 @@ public:
             }
         }
         ss << ")";
-        for (const auto& body : body) {
+        for (const auto &body : body) {
             ss << " " << body->debug();
         }
         std::string s = ss.str();
@@ -774,21 +617,13 @@ private:
 public:
     Quoted(const std::shared_ptr<Object> object) : object(object) {}
 
-    std::shared_ptr<Object> get_object() {
-        return object;
-    }
+    std::shared_ptr<Object> get_object() { return object; }
 
-    ObjectKind kind() const override {
-        return ObjectKind::Quoted;
-    }
+    ObjectKind kind() const override { return ObjectKind::Quoted; }
 
-    bool is_atom() const override {
-        return false;
-    }
+    bool is_atom() const override { return false; }
 
-    std::string debug() const override {
-        return "'" + object->debug();
-    }
+    std::string debug() const override { return "'" + object->debug(); }
 };
 
 class BackQuoted : public Object {
@@ -798,21 +633,13 @@ private:
 public:
     BackQuoted(const std::shared_ptr<Object> object) : object(object) {}
 
-    std::shared_ptr<Object> get_object() {
-        return object;
-    }
+    std::shared_ptr<Object> get_object() { return object; }
 
-    ObjectKind kind() const override {
-        return ObjectKind::BackQuoted;
-    }
+    ObjectKind kind() const override { return ObjectKind::BackQuoted; }
 
-    bool is_atom() const override {
-        return false;
-    }
+    bool is_atom() const override { return false; }
 
-    std::string debug() const override {
-        return "`" + object->debug();
-    }
+    std::string debug() const override { return "`" + object->debug(); }
 };
 
 class Comma : public Object {
@@ -822,21 +649,13 @@ private:
 public:
     Comma(const std::shared_ptr<Object> object) : object(object) {}
 
-    std::shared_ptr<Object> get_object() {
-        return object;
-    }
+    std::shared_ptr<Object> get_object() { return object; }
 
-    ObjectKind kind() const override {
-        return ObjectKind::Comma;
-    }
+    ObjectKind kind() const override { return ObjectKind::Comma; }
 
-    bool is_atom() const override {
-        return false;
-    }
+    bool is_atom() const override { return false; }
 
-    std::string debug() const override {
-        return "," + object->debug();
-    }
+    std::string debug() const override { return "," + object->debug(); }
 };
 
 class CommaAtmark : public Object {
@@ -846,21 +665,13 @@ private:
 public:
     CommaAtmark(const std::shared_ptr<Object> object) : object(object) {}
 
-    std::shared_ptr<Object> get_object() {
-        return object;
-    }
+    std::shared_ptr<Object> get_object() { return object; }
 
-    ObjectKind kind() const override {
-        return ObjectKind::CommaAtmark;
-    }
+    ObjectKind kind() const override { return ObjectKind::CommaAtmark; }
 
-    bool is_atom() const override {
-        return false;
-    }
+    bool is_atom() const override { return false; }
 
-    std::string debug() const override {
-        return ",@" + object->debug();
-    }
+    std::string debug() const override { return ",@" + object->debug(); }
 };
 
 static std::shared_ptr<T> GLOBAL_T = std::make_shared<T>();
@@ -868,52 +679,44 @@ static std::shared_ptr<NIL> GLOBAL_NIL = std::make_shared<NIL>();
 
 class ParseException : public std::runtime_error {
 public:
-    ParseException(const std::string& msg) : std::runtime_error(msg) {}
+    ParseException(const std::string &msg) : std::runtime_error(msg) {}
 };
 
-std::vector<std::shared_ptr<Object>> parse(const std::vector<std::shared_ptr<Token>>& tokens);
+std::vector<std::shared_ptr<Object>> parse(
+    const std::vector<std::shared_ptr<Token>> &tokens);
 std::shared_ptr<Object> parse_object(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-);
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last);
 std::shared_ptr<Integer> parse_int(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-);
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last);
 std::shared_ptr<Number> parse_num(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-);
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last);
 std::shared_ptr<String> parse_str(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-);
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last);
 std::shared_ptr<Symbol> parse_sym(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-);
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last);
 std::shared_ptr<Object> parse_list(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-);
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last);
 std::shared_ptr<Quoted> parse_quote(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-);
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last);
 std::shared_ptr<BackQuoted> parse_back_quote(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-);
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last);
 std::shared_ptr<Comma> parse_comma(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-);
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last);
 std::shared_ptr<CommaAtmark> parse_comma_atmark(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-);
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last);
 
-std::vector<std::shared_ptr<Object>> parse(const std::vector<std::shared_ptr<Token>>& tokens) {
+std::vector<std::shared_ptr<Object>> parse(
+    const std::vector<std::shared_ptr<Token>> &tokens) {
     std::vector<std::shared_ptr<Object>> atoms = {};
     auto it = tokens.begin();
     const auto last = tokens.end();
@@ -924,9 +727,8 @@ std::vector<std::shared_ptr<Object>> parse(const std::vector<std::shared_ptr<Tok
 }
 
 std::shared_ptr<Object> parse_object(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-) {
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last) {
     if (it == last) {
         throw ParseException("expected token, but not found");
     }
@@ -959,77 +761,80 @@ std::shared_ptr<Object> parse_object(
 }
 
 std::shared_ptr<Integer> parse_int(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-) {
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last) {
     if (it == last) {
         throw ParseException("expected token, but not found");
     } else if ((*it)->kind() != TokenKind::Integer) {
         std::ostringstream ss;
-        ss << "unexpected token " << (*it)->debug() << " found: expected integer";
+        ss << "unexpected token " << (*it)->debug()
+           << " found: expected integer";
         throw ParseException(ss.str());
     } else {
-        const std::shared_ptr<IntegerToken> integer = std::static_pointer_cast<IntegerToken>(*it);
+        const std::shared_ptr<IntegerToken> integer =
+            std::static_pointer_cast<IntegerToken>(*it);
         it++;
         return std::make_shared<Integer>(integer->get_integer());
     }
 }
 
 std::shared_ptr<Number> parse_num(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-) {
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last) {
     if (it == last) {
         throw ParseException("expected token, but not found");
     } else if ((*it)->kind() != TokenKind::Number) {
         std::ostringstream ss;
-        ss << "unexpected token " << (*it)->debug() << " found: expected number";
+        ss << "unexpected token " << (*it)->debug()
+           << " found: expected number";
         throw ParseException(ss.str());
     } else {
-        const std::shared_ptr<NumberToken> number = std::static_pointer_cast<NumberToken>(*it);
+        const std::shared_ptr<NumberToken> number =
+            std::static_pointer_cast<NumberToken>(*it);
         it++;
         return std::make_shared<Number>(number->get_number());
     }
 }
 
 std::shared_ptr<String> parse_str(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-) {
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last) {
     if (it == last) {
         throw ParseException("expected token, but not found");
     } else if ((*it)->kind() != TokenKind::String) {
         std::ostringstream ss;
-        ss << "unexpected token " << (*it)->debug() << " found: expected string";
+        ss << "unexpected token " << (*it)->debug()
+           << " found: expected string";
         throw ParseException(ss.str());
     } else {
-        const std::shared_ptr<StringToken> string = std::static_pointer_cast<StringToken>(*it);
+        const std::shared_ptr<StringToken> string =
+            std::static_pointer_cast<StringToken>(*it);
         it++;
         return std::make_shared<String>(string->get_string());
     }
 }
 
 std::shared_ptr<Symbol> parse_sym(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-) {
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last) {
     if (it == last) {
         throw ParseException("expected token, but not found");
     } else if ((*it)->kind() != TokenKind::Ident) {
         std::ostringstream ss;
-        ss << "unexpected token " << (*it)->debug() << " found: expected identifier";
+        ss << "unexpected token " << (*it)->debug()
+           << " found: expected identifier";
         throw ParseException(ss.str());
     } else {
-        const std::shared_ptr<IdentToken> ident = std::static_pointer_cast<IdentToken>(*it);
+        const std::shared_ptr<IdentToken> ident =
+            std::static_pointer_cast<IdentToken>(*it);
         it++;
         return std::make_shared<Symbol>(ident->get_ident());
     }
 }
 
 std::shared_ptr<Object> parse_list(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-) {
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last) {
     if (it == last) {
         throw ParseException("expected token, but not found");
     } else if ((*it)->kind() != TokenKind::LParen) {
@@ -1046,7 +851,8 @@ std::shared_ptr<Object> parse_list(
         it++;
         return GLOBAL_NIL;
     } else {
-        std::shared_ptr<List> list = std::make_shared<List>(parse_object(it, last));
+        std::shared_ptr<List> list =
+            std::make_shared<List>(parse_object(it, last));
         while (true) {
             if (it == last) {
                 throw ParseException("expected token, but not found");
@@ -1062,9 +868,8 @@ std::shared_ptr<Object> parse_list(
 }
 
 std::shared_ptr<Quoted> parse_quote(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-) {
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last) {
     if (it == last) {
         throw ParseException("expected token, but not found");
     } else if ((*it)->kind() != TokenKind::Quote) {
@@ -1078,9 +883,8 @@ std::shared_ptr<Quoted> parse_quote(
 }
 
 std::shared_ptr<BackQuoted> parse_back_quote(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-) {
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last) {
     if (it == last) {
         throw ParseException("expected token, but not found");
     } else if ((*it)->kind() != TokenKind::BackQuote) {
@@ -1094,9 +898,8 @@ std::shared_ptr<BackQuoted> parse_back_quote(
 }
 
 std::shared_ptr<Comma> parse_comma(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-) {
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last) {
     if (it == last) {
         throw ParseException("expected token, but not found");
     } else if ((*it)->kind() != TokenKind::Comma) {
@@ -1110,9 +913,8 @@ std::shared_ptr<Comma> parse_comma(
 }
 
 std::shared_ptr<CommaAtmark> parse_comma_atmark(
-    std::vector<std::shared_ptr<Token>>::const_iterator& it,
-    const std::vector<std::shared_ptr<Token>>::const_iterator& last
-) {
+    std::vector<std::shared_ptr<Token>>::const_iterator &it,
+    const std::vector<std::shared_ptr<Token>>::const_iterator &last) {
     if (it == last) {
         throw ParseException("expected token, but not found");
     } else if ((*it)->kind() != TokenKind::CommaAtmark) {
@@ -1127,218 +929,216 @@ std::shared_ptr<CommaAtmark> parse_comma_atmark(
 
 class EvalException : public std::runtime_error {
 public:
-    EvalException(const std::string& msg) : std::runtime_error(msg) {}
+    EvalException(const std::string &msg) : std::runtime_error(msg) {}
 };
 
-#define TAKE_JUST_ONE_ARG(name, args, a1) \
-    do { \
-        if (args == nullptr) { \
+#define TAKE_JUST_ONE_ARG(name, args, a1)                                      \
+    do {                                                                       \
+        if (args == nullptr) {                                                 \
             throw EvalException("too few arguments for " + std::string(name)); \
-        } \
-        a1 = args->get_value(); \
-        if (args->get_next() != nullptr) { \
-            throw EvalException("too many arguments for " + std::string(name)); \
-        } \
+        }                                                                      \
+        a1 = args->get_value();                                                \
+        if (args->get_next() != nullptr) {                                     \
+            throw EvalException("too many arguments for " +                    \
+                                std::string(name));                            \
+        }                                                                      \
     } while (0)
 
-#define TAKE_JUST_TWO_ARG(name, args, a1, a2) \
-    do { \
-        if (args == nullptr) { \
+#define TAKE_JUST_TWO_ARG(name, args, a1, a2)                                  \
+    do {                                                                       \
+        if (args == nullptr) {                                                 \
             throw EvalException("too few arguments for " + std::string(name)); \
-        } \
-        a1 = args->get_value(); \
-        if (args->get_next() == nullptr) { \
+        }                                                                      \
+        a1 = args->get_value();                                                \
+        if (args->get_next() == nullptr) {                                     \
             throw EvalException("too few arguments for " + std::string(name)); \
-        } \
-        a2 = args->get_next()->get_value(); \
-        if (args->get_next()->get_next() != nullptr) { \
-            throw EvalException("too many arguments for " + std::string(name)); \
-        } \
+        }                                                                      \
+        a2 = args->get_next()->get_value();                                    \
+        if (args->get_next()->get_next() != nullptr) {                         \
+            throw EvalException("too many arguments for " +                    \
+                                std::string(name));                            \
+        }                                                                      \
     } while (0)
 
-#define TAKE_JUST_THREE_ARG(name, args, a1, a2, a3) \
-    do { \
-        if (args == nullptr) { \
+#define TAKE_JUST_THREE_ARG(name, args, a1, a2, a3)                            \
+    do {                                                                       \
+        if (args == nullptr) {                                                 \
             throw EvalException("too few arguments for " + std::string(name)); \
-        } \
-        a1 = args->get_value(); \
-        if (args->get_next() == nullptr) { \
+        }                                                                      \
+        a1 = args->get_value();                                                \
+        if (args->get_next() == nullptr) {                                     \
             throw EvalException("too few arguments for " + std::string(name)); \
-        } \
-        a2 = args->get_next()->get_value(); \
-        if (args->get_next()->get_next() == nullptr) { \
+        }                                                                      \
+        a2 = args->get_next()->get_value();                                    \
+        if (args->get_next()->get_next() == nullptr) {                         \
             throw EvalException("too few arguments for " + std::string(name)); \
-        } \
-        a3 = args->get_next()->get_next()->get_value(); \
-        if (args->get_next()->get_next()->get_next() != nullptr) { \
-            throw EvalException("too many arguments for " + std::string(name)); \
-        } \
+        }                                                                      \
+        a3 = args->get_next()->get_next()->get_value();                        \
+        if (args->get_next()->get_next()->get_next() != nullptr) {             \
+            throw EvalException("too many arguments for " +                    \
+                                std::string(name));                            \
+        }                                                                      \
     } while (0)
 
 #define EVAL_JUST_ONE_ARG(name, args, env, a1) \
-    do { \
-        TAKE_JUST_ONE_ARG(name, args, a1); \
-        a1 = eval(a1, env); \
+    do {                                       \
+        TAKE_JUST_ONE_ARG(name, args, a1);     \
+        a1 = eval(a1, env);                    \
     } while (0)
 
 #define EVAL_JUST_TWO_ARG(name, args, env, a1, a2) \
-    do { \
-        TAKE_JUST_TWO_ARG(name, args, a1, a2); \
-        a1 = eval(a1, env); \
-        a2 = eval(a2, env); \
+    do {                                           \
+        TAKE_JUST_TWO_ARG(name, args, a1, a2);     \
+        a1 = eval(a1, env);                        \
+        a2 = eval(a2, env);                        \
     } while (0)
 
 #define EVAL_JUST_THREE_ARG(name, args, env, a1, a2, a3) \
-    do { \
-        TAKE_JUST_THREE_ARG(name, args, a1, a2, a3); \
-        a1 = eval(a1, env); \
-        a2 = eval(a2, env); \
-        a3 = eval(a3, env); \
-    } while (0) \
-
-#define TAKE_ONE_ARG(name, args, a1) \
-    do { \
-        if (args == nullptr) { \
-            throw EvalException("too few arguments for " + std::string(name)); \
-        } \
-        a1 = args->get_value(); \
+    do {                                                 \
+        TAKE_JUST_THREE_ARG(name, args, a1, a2, a3);     \
+        a1 = eval(a1, env);                              \
+        a2 = eval(a2, env);                              \
+        a3 = eval(a3, env);                              \
     } while (0)
 
-#define TAKE_TWO_ARG(name, args, a1, a2) \
-    do { \
-        if (args == nullptr) { \
+#define TAKE_ONE_ARG(name, args, a1)                                           \
+    do {                                                                       \
+        if (args == nullptr) {                                                 \
             throw EvalException("too few arguments for " + std::string(name)); \
-        } \
-        a1 = args->get_value(); \
-        if (args->get_next() == nullptr) { \
-            throw EvalException("too few arguments for " + std::string(name)); \
-        } \
-        a2 = args->get_next()->get_value(); \
+        }                                                                      \
+        a1 = args->get_value();                                                \
     } while (0)
 
-#define TAKE_THREE_ARG(name, args, a1, a2, a3) \
-    do { \
-        if (args == nullptr) { \
+#define TAKE_TWO_ARG(name, args, a1, a2)                                       \
+    do {                                                                       \
+        if (args == nullptr) {                                                 \
             throw EvalException("too few arguments for " + std::string(name)); \
-        } \
-        a1 = args->get_value(); \
-        if (args->get_next() == nullptr) { \
+        }                                                                      \
+        a1 = args->get_value();                                                \
+        if (args->get_next() == nullptr) {                                     \
             throw EvalException("too few arguments for " + std::string(name)); \
-        } \
-        a2 = args->get_next()->get_value(); \
-        if (args->get_next()->get_next() == nullptr) { \
+        }                                                                      \
+        a2 = args->get_next()->get_value();                                    \
+    } while (0)
+
+#define TAKE_THREE_ARG(name, args, a1, a2, a3)                                 \
+    do {                                                                       \
+        if (args == nullptr) {                                                 \
             throw EvalException("too few arguments for " + std::string(name)); \
-        } \
-        a3 = args->get_next()->get_next()->get_value(); \
+        }                                                                      \
+        a1 = args->get_value();                                                \
+        if (args->get_next() == nullptr) {                                     \
+            throw EvalException("too few arguments for " + std::string(name)); \
+        }                                                                      \
+        a2 = args->get_next()->get_value();                                    \
+        if (args->get_next()->get_next() == nullptr) {                         \
+            throw EvalException("too few arguments for " + std::string(name)); \
+        }                                                                      \
+        a3 = args->get_next()->get_next()->get_value();                        \
     } while (0)
 
 #define EVAL_ONE_ARG(name, args, env, a1) \
-    do { \
-        TAKE_ONE_ARG(name, args, a1); \
-        a1 = eval(a1, env); \
+    do {                                  \
+        TAKE_ONE_ARG(name, args, a1);     \
+        a1 = eval(a1, env);               \
     } while (0)
 
 #define EVAL_TWO_ARG(name, args, env, a1, a2) \
-    do { \
-        TAKE_TWO_ARG(name, args, a1, a2); \
-        a1 = eval(a1, env); \
-        a2 = eval(a2, env); \
+    do {                                      \
+        TAKE_TWO_ARG(name, args, a1, a2);     \
+        a1 = eval(a1, env);                   \
+        a2 = eval(a2, env);                   \
     } while (0)
 
 #define EVAL_THREE_ARG(name, args, env, a1, a2, a3) \
-    do { \
-        TAKE_THREE_ARG(name, args, a1, a2, a3); \
-        a1 = eval(a1, env); \
-        a2 = eval(a2, env); \
-        a3 = eval(a3, env); \
-    } while (0) \
+    do {                                            \
+        TAKE_THREE_ARG(name, args, a1, a2, a3);     \
+        a1 = eval(a1, env);                         \
+        a2 = eval(a2, env);                         \
+        a3 = eval(a3, env);                         \
+    } while (0)
 
-std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env);
-std::shared_ptr<Object> eval_backquoted(const std::shared_ptr<Object>& object, Env& env);
-std::shared_ptr<Object> eval_backquoted_list(const std::shared_ptr<List>& list, Env& env);
-std::list<std::shared_ptr<Object>> eval_backquoted_inner(const std::shared_ptr<Object>& object, Env& env);
-std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env);
-std::shared_ptr<Object> eval_symbol(const std::shared_ptr<Symbol>& symbol, Env& env);
+std::shared_ptr<Object> eval(const std::shared_ptr<Object> &object, Env &env);
+std::shared_ptr<Object> eval_backquoted(const std::shared_ptr<Object> &object,
+                                        Env &env);
+std::shared_ptr<Object> eval_backquoted_list(const std::shared_ptr<List> &list,
+                                             Env &env);
+std::list<std::shared_ptr<Object>> eval_backquoted_inner(
+    const std::shared_ptr<Object> &object, Env &env);
+std::shared_ptr<Object> eval_list(const std::shared_ptr<List> &list, Env &env);
+std::shared_ptr<Object> eval_symbol(const std::shared_ptr<Symbol> &symbol,
+                                    Env &env);
 void assign_macro_sym(
-    std::list<std::shared_ptr<Symbol>>::iterator& sym_it,
-    const std::list<std::shared_ptr<Symbol>>::iterator& sym_last,
-    std::list<std::shared_ptr<Object>>::iterator& arg_it,
-    const std::list<std::shared_ptr<Object>>::iterator& arg_last,
-    Env& env
-);
+    std::list<std::shared_ptr<Symbol>>::iterator &sym_it,
+    const std::list<std::shared_ptr<Symbol>>::iterator &sym_last,
+    std::list<std::shared_ptr<Object>>::iterator &arg_it,
+    const std::list<std::shared_ptr<Object>>::iterator &arg_last, Env &env);
 std::list<std::shared_ptr<Object>> expand_macro(
-    const std::shared_ptr<Macro> macro,
-    const std::shared_ptr<List> args,
-    Env& env
-);
-std::shared_ptr<Object> apply_macro(
-    const std::shared_ptr<Macro> macro,
-    const std::shared_ptr<List> args,
-    Env& env
-);
+    const std::shared_ptr<Macro> macro, const std::shared_ptr<List> args,
+    Env &env);
+std::shared_ptr<Object> apply_macro(const std::shared_ptr<Macro> macro,
+                                    const std::shared_ptr<List> args, Env &env);
 std::shared_ptr<Object> apply_part_func_ptr(
     const std::shared_ptr<PartiallyAppliedFuncPtr> func,
-    const std::shared_ptr<List> args,
-    Env& env
-);
-std::shared_ptr<Object> apply_func_ptr(
-    const std::shared_ptr<FuncPtr> func,
-    const std::shared_ptr<List> args,
-    Env& env
-);
+    const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> apply_func_ptr(const std::shared_ptr<FuncPtr> func,
+                                       const std::shared_ptr<List> args,
+                                       Env &env);
 std::shared_ptr<Object> apply_part_func(
     const std::shared_ptr<PartiallyAppliedFunction> func,
-    const std::shared_ptr<List> args,
-    Env& env
-);
-std::shared_ptr<Object> apply_func(
-    const std::shared_ptr<Function> func,
-    const std::shared_ptr<List> args,
-    Env& env
-);
-std::shared_ptr<Object> fn_quote(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_list(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_car(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_cdr(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_cons(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_atom(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_if(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_eq_num(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_ne_num(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_lt_num(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_gt_num(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_le_num(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_ge_num(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_add_num(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_sub_num(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_mul_num(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_div_num(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_eq_str(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_ne_str(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_lt_str(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_gt_str(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_le_str(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_ge_str(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_equal_str(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_write(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_write_line(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_print(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_prin1(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_princ(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_read_str(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_read_int(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_read_num(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_macro(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_debug(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env& env);
-std::shared_ptr<Object> fn_macroexpand(const std::shared_ptr<List> args, Env& env);
+    const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> apply_func(const std::shared_ptr<Function> func,
+                                   const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_quote(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_list(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_car(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_cdr(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_cons(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_atom(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_if(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_eq_num(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_ne_num(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_lt_num(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_gt_num(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_le_num(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_ge_num(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_add_num(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_sub_num(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_mul_num(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_div_num(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_string_nth(const std::shared_ptr<List> args,
+                                      Env &env);
+std::shared_ptr<Object> fn_eq_str(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_ne_str(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_lt_str(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_gt_str(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_le_str(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_ge_str(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_equal_str(const std::shared_ptr<List> args,
+                                     Env &env);
+std::shared_ptr<Object> fn_write(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_write_line(const std::shared_ptr<List> args,
+                                      Env &env);
+std::shared_ptr<Object> fn_print(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_prin1(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_princ(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_read_str(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_read_int(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_read_num(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_macro(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args,
+                                         Env &env);
+std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args,
+                                         Env &env);
+std::shared_ptr<Object> fn_debug(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env &env);
+std::shared_ptr<Object> fn_macroexpand(const std::shared_ptr<List> args,
+                                       Env &env);
 
-std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
+std::shared_ptr<Object> eval(const std::shared_ptr<Object> &object, Env &env) {
     switch (object->kind()) {
         case ObjectKind::T:
         case ObjectKind::NIL:
@@ -1358,8 +1158,11 @@ std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
         case ObjectKind::Quoted:
             return std::static_pointer_cast<Quoted>(object)->get_object();
         case ObjectKind::BackQuoted:
-            // TODO: This algorithm can't evaluate `(',@(list 10 20)) to ((quote 10 20)) like clisp does.
-            return eval_backquoted(std::static_pointer_cast<BackQuoted>(object)->get_object(), env);
+            // TODO: This algorithm can't evaluate `(',@(list 10 20)) to ((quote
+            // 10 20)) like clisp does.
+            return eval_backquoted(
+                std::static_pointer_cast<BackQuoted>(object)->get_object(),
+                env);
         case ObjectKind::Comma:
         case ObjectKind::CommaAtmark:
             throw EvalException("comma is invalid outside of backquote");
@@ -1368,7 +1171,8 @@ std::shared_ptr<Object> eval(const std::shared_ptr<Object>& object, Env& env) {
     }
 }
 
-std::shared_ptr<Object> eval_backquoted(const std::shared_ptr<Object>& object, Env& env) {
+std::shared_ptr<Object> eval_backquoted(const std::shared_ptr<Object> &object,
+                                        Env &env) {
     if (object->kind() == ObjectKind::Quoted) {
         auto inner = std::static_pointer_cast<Quoted>(object)->get_object();
         return eval_backquoted(inner, env);
@@ -1376,13 +1180,15 @@ std::shared_ptr<Object> eval_backquoted(const std::shared_ptr<Object>& object, E
         auto inner = std::static_pointer_cast<Comma>(object)->get_object();
         return eval(inner, env);
     } else if (object->kind() == ObjectKind::List) {
-        return eval_backquoted_list(std::static_pointer_cast<List>(object), env);
+        return eval_backquoted_list(std::static_pointer_cast<List>(object),
+                                    env);
     } else {
         return object;
     }
 }
 
-std::shared_ptr<Object> eval_backquoted_list(const std::shared_ptr<List>& list, Env& env) {
+std::shared_ptr<Object> eval_backquoted_list(const std::shared_ptr<List> &list,
+                                             Env &env) {
     std::list<std::shared_ptr<Object>> objs;
     auto list_it = list;
     while (list_it != nullptr) {
@@ -1391,7 +1197,9 @@ std::shared_ptr<Object> eval_backquoted_list(const std::shared_ptr<List>& list, 
             auto inner = std::static_pointer_cast<Comma>(object)->get_object();
             objs.push_back(eval(inner, env));
         } else if (object->kind() == ObjectKind::CommaAtmark) {
-            auto inner = eval(std::static_pointer_cast<CommaAtmark>(object)->get_object(), env);
+            auto inner = eval(
+                std::static_pointer_cast<CommaAtmark>(object)->get_object(),
+                env);
             if (inner->kind() == ObjectKind::List) {
                 auto inner_it = std::static_pointer_cast<List>(inner);
                 while (inner_it != nullptr) {
@@ -1403,9 +1211,16 @@ std::shared_ptr<Object> eval_backquoted_list(const std::shared_ptr<List>& list, 
             }
         } else if (object->kind() == ObjectKind::Quoted) {
             auto inner = std::static_pointer_cast<Quoted>(object)->get_object();
-            objs.push_back(std::make_shared<Quoted>(eval_backquoted(inner, env)));
+            objs.push_back(
+                std::make_shared<Quoted>(eval_backquoted(inner, env)));
+        } else if (object->kind() == ObjectKind::BackQuoted) {
+            auto inner =
+                std::static_pointer_cast<BackQuoted>(object)->get_object();
+            objs.push_back(
+                std::make_shared<BackQuoted>(eval_backquoted(inner, env)));
         } else if (object->kind() == ObjectKind::List) {
-            objs.push_back(eval_backquoted_list(std::static_pointer_cast<List>(object), env));
+            objs.push_back(eval_backquoted_list(
+                std::static_pointer_cast<List>(object), env));
         } else {
             objs.push_back(object);
         }
@@ -1425,7 +1240,7 @@ std::shared_ptr<Object> eval_backquoted_list(const std::shared_ptr<List>& list, 
     return new_list;
 }
 
-std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env) {
+std::shared_ptr<Object> eval_list(const std::shared_ptr<List> &list, Env &env) {
     auto first = eval(list->get_value(), env);
     if (first->kind() == ObjectKind::Function) {
         auto func = std::static_pointer_cast<Function>(first);
@@ -1448,12 +1263,10 @@ std::shared_ptr<Object> eval_list(const std::shared_ptr<List>& list, Env& env) {
 }
 
 void assign_macro_sym(
-    std::list<std::shared_ptr<Symbol>>::iterator& sym_it,
-    const std::list<std::shared_ptr<Symbol>>::iterator& sym_last,
-    std::list<std::shared_ptr<Object>>::iterator& arg_it,
-    const std::list<std::shared_ptr<Object>>::iterator& arg_last,
-    Env& env
-) {
+    std::list<std::shared_ptr<Symbol>>::iterator &sym_it,
+    const std::list<std::shared_ptr<Symbol>>::iterator &sym_last,
+    std::list<std::shared_ptr<Object>>::iterator &arg_it,
+    const std::list<std::shared_ptr<Object>>::iterator &arg_last, Env &env) {
     if (sym_it == sym_last) {
         throw EvalException("too many arguments for macro");
     }
@@ -1504,10 +1317,8 @@ void assign_macro_sym(
 }
 
 std::list<std::shared_ptr<Object>> expand_macro(
-    const std::shared_ptr<Macro> macro,
-    const std::shared_ptr<List> args,
-    Env& env
-) {
+    const std::shared_ptr<Macro> macro, const std::shared_ptr<List> args,
+    Env &env) {
     std::list<std::shared_ptr<Object>> arg_list;
     auto head = args;
     while (head != nullptr) {
@@ -1525,20 +1336,18 @@ std::list<std::shared_ptr<Object>> expand_macro(
     }
 
     std::list<std::shared_ptr<Object>> list;
-    for (auto& body : macro->get_body()) {
+    for (auto &body : macro->get_body()) {
         list.push_back(eval(body, temp_env));
     }
     return list;
 }
 
-std::shared_ptr<Object> apply_macro(
-    const std::shared_ptr<Macro> macro,
-    const std::shared_ptr<List> args,
-    Env& env
-) {
+std::shared_ptr<Object> apply_macro(const std::shared_ptr<Macro> macro,
+                                    const std::shared_ptr<List> args,
+                                    Env &env) {
     auto expanded_objs = expand_macro(macro, args, env);
     std::shared_ptr<Object> result = GLOBAL_NIL;
-    for (auto& expanded_obj : expanded_objs) {
+    for (auto &expanded_obj : expanded_objs) {
         result = eval(expanded_obj, env);
     }
     return result;
@@ -1546,37 +1355,28 @@ std::shared_ptr<Object> apply_macro(
 
 std::shared_ptr<Object> apply_part_func_ptr(
     const std::shared_ptr<PartiallyAppliedFuncPtr> func,
-    const std::shared_ptr<List> args,
-    Env& env
-) {
+    const std::shared_ptr<List> args, Env &env) {
     auto new_args = func->get_args();
     new_args->append(args);
     return apply_func_ptr(func->get_func(), new_args, env);
 }
 
-std::shared_ptr<Object> apply_func_ptr(
-    const std::shared_ptr<FuncPtr> func,
-    const std::shared_ptr<List> args,
-    Env& env
-) {
+std::shared_ptr<Object> apply_func_ptr(const std::shared_ptr<FuncPtr> func,
+                                       const std::shared_ptr<List> args,
+                                       Env &env) {
     return func->get_func()(args, env);
 }
 
 std::shared_ptr<Object> apply_part_func(
     const std::shared_ptr<PartiallyAppliedFunction> func,
-    const std::shared_ptr<List> args,
-    Env& env
-) {
+    const std::shared_ptr<List> args, Env &env) {
     auto new_args = func->get_args();
     new_args->append(args);
     return apply_func(func->get_func(), new_args, env);
 }
 
-std::shared_ptr<Object> apply_func(
-    const std::shared_ptr<Function> func,
-    const std::shared_ptr<List> args,
-    Env& env
-) {
+std::shared_ptr<Object> apply_func(const std::shared_ptr<Function> func,
+                                   const std::shared_ptr<List> args, Env &env) {
     std::list<std::shared_ptr<Object>> arg_list;
     auto head = args;
     while (head != nullptr) {
@@ -1587,39 +1387,42 @@ std::shared_ptr<Object> apply_func(
     Env temp_env(env);
     if (arg_list.size() > func->get_params().size()) {
         std::ostringstream ss;
-        ss << "different number of argument to function: expect " << func->get_params().size();
+        ss << "different number of argument to function: expect "
+           << func->get_params().size();
         ss << ", but got " << arg_list.size();
         throw EvalException(ss.str());
-    } else if (arg_list.size() == func->get_params().size()){
+    } else if (arg_list.size() == func->get_params().size()) {
         auto syms = func->get_params().begin();
         auto args = arg_list.begin();
         while (syms != func->get_params().end()) {
             temp_env.set_obj((*syms)->get_symbol(), eval(*args, env));
-            syms++; args++;
+            syms++;
+            args++;
         }
     } else {
         return std::make_shared<PartiallyAppliedFunction>(func, args);
     }
 
     std::shared_ptr<Object> result = GLOBAL_NIL;
-    for (auto& body : func->get_body()) {
+    for (auto &body : func->get_body()) {
         result = eval(body, temp_env);
     }
     return result;
 }
 
-std::shared_ptr<Object> eval_symbol(const std::shared_ptr<Symbol>& symbol, Env& env) {
+std::shared_ptr<Object> eval_symbol(const std::shared_ptr<Symbol> &symbol,
+                                    Env &env) {
     return env.get_obj(symbol->get_symbol());
 }
 
-std::shared_ptr<Object> fn_quote(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_quote(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1;
     TAKE_JUST_ONE_ARG("quote", args, a1);
 
     return a1;
 }
 
-std::shared_ptr<Object> fn_list(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_list(const std::shared_ptr<List> args, Env &env) {
     if (args == nullptr) {
         return GLOBAL_NIL;
     }
@@ -1631,15 +1434,16 @@ std::shared_ptr<Object> fn_list(const std::shared_ptr<List> args, Env& env) {
     auto arg_it = args->get_next();
     while (arg_it != nullptr) {
         // HACK: When we append item to list, it takes O(len(list)).
-        //       The length increment if I append item. So, the time complexity is
-        //       O(1 + 2 + .. + n) = O(n^2), which is slow if number of item is too big.
+        //       The length increment if I append item. So, the time complexity
+        //       is O(1 + 2 + .. + n) = O(n^2), which is slow if number of item
+        //       is too big.
         list->append(std::make_shared<List>(eval(arg_it->get_value(), env)));
         arg_it = arg_it->get_next();
     }
     return list;
 }
 
-std::shared_ptr<Object> fn_car(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_car(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("car", args, env, a1);
 
@@ -1653,7 +1457,7 @@ std::shared_ptr<Object> fn_car(const std::shared_ptr<List> args, Env& env) {
     }
 }
 
-std::shared_ptr<Object> fn_cdr(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_cdr(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("cdr", args, env, a1);
 
@@ -1671,7 +1475,7 @@ std::shared_ptr<Object> fn_cdr(const std::shared_ptr<List> args, Env& env) {
     }
 }
 
-std::shared_ptr<Object> fn_cons(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_cons(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG("cons", args, env, a1, a2);
 
@@ -1684,7 +1488,7 @@ std::shared_ptr<Object> fn_cons(const std::shared_ptr<List> args, Env& env) {
     }
 }
 
-std::shared_ptr<Object> fn_atom(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_atom(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("atom", args, env, a1);
 
@@ -1695,7 +1499,7 @@ std::shared_ptr<Object> fn_atom(const std::shared_ptr<List> args, Env& env) {
     }
 }
 
-std::shared_ptr<Object> fn_if(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_if(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2, a3;
     TAKE_JUST_THREE_ARG("if", args, a1, a2, a3);
 
@@ -1706,95 +1510,121 @@ std::shared_ptr<Object> fn_if(const std::shared_ptr<List> args, Env& env) {
     }
 }
 
-#define APPLY_COMP_OP_TO_NUMS(a1, a2, op) \
-    do { \
-        if (a1->kind() == ObjectKind::Integer && a2->kind() == ObjectKind::Integer) { \
-            int l = std::static_pointer_cast<Integer>(a1)->get_integer(); \
-            int r = std::static_pointer_cast<Integer>(a2)->get_integer(); \
-            if (l op r) { return GLOBAL_T; } else { return GLOBAL_NIL; } \
-        } else if (a1->kind() == ObjectKind::Integer && a2->kind() == ObjectKind::Number) { \
+#define APPLY_COMP_OP_TO_NUMS(a1, a2, op)                                    \
+    do {                                                                     \
+        if (a1->kind() == ObjectKind::Integer &&                             \
+            a2->kind() == ObjectKind::Integer) {                             \
+            int l = std::static_pointer_cast<Integer>(a1)->get_integer();    \
+            int r = std::static_pointer_cast<Integer>(a2)->get_integer();    \
+            if (l op r) {                                                    \
+                return GLOBAL_T;                                             \
+            } else {                                                         \
+                return GLOBAL_NIL;                                           \
+            }                                                                \
+        } else if (a1->kind() == ObjectKind::Integer &&                      \
+                   a2->kind() == ObjectKind::Number) {                       \
             double l = std::static_pointer_cast<Integer>(a1)->get_integer(); \
-            double r = std::static_pointer_cast<Number>(a2)->get_number(); \
-            if (l op r) { return GLOBAL_T; } else { return GLOBAL_NIL; } \
-        } else if (a1->kind() == ObjectKind::Number && a2->kind() == ObjectKind::Integer) { \
-            double l = std::static_pointer_cast<Number>(a1)->get_number(); \
+            double r = std::static_pointer_cast<Number>(a2)->get_number();   \
+            if (l op r) {                                                    \
+                return GLOBAL_T;                                             \
+            } else {                                                         \
+                return GLOBAL_NIL;                                           \
+            }                                                                \
+        } else if (a1->kind() == ObjectKind::Number &&                       \
+                   a2->kind() == ObjectKind::Integer) {                      \
+            double l = std::static_pointer_cast<Number>(a1)->get_number();   \
             double r = std::static_pointer_cast<Integer>(a2)->get_integer(); \
-            if (l op r) { return GLOBAL_T; } else { return GLOBAL_NIL; } \
-        } else if (a1->kind() == ObjectKind::Number && a2->kind() == ObjectKind::Number) { \
-            double l = std::static_pointer_cast<Number>(a1)->get_number(); \
-            double r = std::static_pointer_cast<Number>(a2)->get_number(); \
-            if (l op r) { return GLOBAL_T; } else { return GLOBAL_NIL; } \
-        } else { \
-            std::ostringstream ss; \
-            ss << std::string(#op) << " cannot be applied to non-numeric objects: "; \
+            if (l op r) {                                                    \
+                return GLOBAL_T;                                             \
+            } else {                                                         \
+                return GLOBAL_NIL;                                           \
+            }                                                                \
+        } else if (a1->kind() == ObjectKind::Number &&                       \
+                   a2->kind() == ObjectKind::Number) {                       \
+            double l = std::static_pointer_cast<Number>(a1)->get_number();   \
+            double r = std::static_pointer_cast<Number>(a2)->get_number();   \
+            if (l op r) {                                                    \
+                return GLOBAL_T;                                             \
+            } else {                                                         \
+                return GLOBAL_NIL;                                           \
+            }                                                                \
+        } else {                                                             \
+            std::ostringstream ss;                                           \
+            ss << std::string(#op)                                           \
+               << " cannot be applied to non-numeric objects: ";             \
             ss << "lhs is " << a1->debug() << " and rhs is " << a2->debug(); \
-            throw EvalException(ss.str()); \
-        } \
+            throw EvalException(ss.str());                                   \
+        }                                                                    \
     } while (0)
 
-#define APPLY_ARITH_OP_TO_NUMS(a1, a2, a3, op) \
-    do { \
-        if (a1->kind() == ObjectKind::Integer && a2->kind() == ObjectKind::Integer) { \
-            int l = std::static_pointer_cast<Integer>(a1)->get_integer(); \
-            int r = std::static_pointer_cast<Integer>(a2)->get_integer(); \
-            a3 = std::make_shared<Integer>(l op r); \
-        } else if (a1->kind() == ObjectKind::Integer && a2->kind() == ObjectKind::Number) { \
+#define APPLY_ARITH_OP_TO_NUMS(a1, a2, a3, op)                               \
+    do {                                                                     \
+        if (a1->kind() == ObjectKind::Integer &&                             \
+            a2->kind() == ObjectKind::Integer) {                             \
+            int l = std::static_pointer_cast<Integer>(a1)->get_integer();    \
+            int r = std::static_pointer_cast<Integer>(a2)->get_integer();    \
+            a3 = std::make_shared<Integer>(l op r);                          \
+        } else if (a1->kind() == ObjectKind::Integer &&                      \
+                   a2->kind() == ObjectKind::Number) {                       \
             double l = std::static_pointer_cast<Integer>(a1)->get_integer(); \
-            double r = std::static_pointer_cast<Number>(a2)->get_number(); \
-            a3 = std::make_shared<Number>(l op r); \
-        } else if (a1->kind() == ObjectKind::Number && a2->kind() == ObjectKind::Integer) { \
-            double l = std::static_pointer_cast<Number>(a1)->get_number(); \
+            double r = std::static_pointer_cast<Number>(a2)->get_number();   \
+            a3 = std::make_shared<Number>(l op r);                           \
+        } else if (a1->kind() == ObjectKind::Number &&                       \
+                   a2->kind() == ObjectKind::Integer) {                      \
+            double l = std::static_pointer_cast<Number>(a1)->get_number();   \
             double r = std::static_pointer_cast<Integer>(a2)->get_integer(); \
-            a3 = std::make_shared<Number>(l op r); \
-        } else if (a1->kind() == ObjectKind::Number && a2->kind() == ObjectKind::Number) { \
-            double l = std::static_pointer_cast<Number>(a1)->get_number(); \
-            double r = std::static_pointer_cast<Number>(a2)->get_number(); \
-            a3 = std::make_shared<Number>(l op r); \
-        } else { \
-            std::ostringstream ss; \
-            ss << std::string(#op) << " cannot be applied to non-numeric objects: "; \
+            a3 = std::make_shared<Number>(l op r);                           \
+        } else if (a1->kind() == ObjectKind::Number &&                       \
+                   a2->kind() == ObjectKind::Number) {                       \
+            double l = std::static_pointer_cast<Number>(a1)->get_number();   \
+            double r = std::static_pointer_cast<Number>(a2)->get_number();   \
+            a3 = std::make_shared<Number>(l op r);                           \
+        } else {                                                             \
+            std::ostringstream ss;                                           \
+            ss << std::string(#op)                                           \
+               << " cannot be applied to non-numeric objects: ";             \
             ss << "lhs is " << a1->debug() << " and rhs is " << a2->debug(); \
-            throw EvalException(ss.str()); \
-        } \
+            throw EvalException(ss.str());                                   \
+        }                                                                    \
     } while (0)
 
-std::shared_ptr<Object> fn_eq_num(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_eq_num(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG("=", args, env, a1, a2);
     APPLY_COMP_OP_TO_NUMS(a1, a2, ==);
 }
 
-std::shared_ptr<Object> fn_ne_num(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_ne_num(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG("/=", args, env, a1, a2);
     APPLY_COMP_OP_TO_NUMS(a1, a2, !=);
 }
 
-std::shared_ptr<Object> fn_lt_num(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_lt_num(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG("<", args, env, a1, a2);
     APPLY_COMP_OP_TO_NUMS(a1, a2, <);
 }
 
-std::shared_ptr<Object> fn_gt_num(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_gt_num(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG(">", args, env, a1, a2);
     APPLY_COMP_OP_TO_NUMS(a1, a2, >);
 }
 
-std::shared_ptr<Object> fn_le_num(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_le_num(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG("<=", args, env, a1, a2);
     APPLY_COMP_OP_TO_NUMS(a1, a2, <=);
 }
 
-std::shared_ptr<Object> fn_ge_num(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_ge_num(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG(">=", args, env, a1, a2);
     APPLY_COMP_OP_TO_NUMS(a1, a2, >=);
 }
 
-std::shared_ptr<Object> fn_add_num(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_add_num(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2, acc;
     EVAL_TWO_ARG("+", args, env, a1, a2);
     APPLY_ARITH_OP_TO_NUMS(a1, a2, acc, +);
@@ -1808,7 +1638,7 @@ std::shared_ptr<Object> fn_add_num(const std::shared_ptr<List> args, Env& env) {
     return acc;
 }
 
-std::shared_ptr<Object> fn_sub_num(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_sub_num(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2, acc;
     EVAL_TWO_ARG("-", args, env, a1, a2);
     APPLY_ARITH_OP_TO_NUMS(a1, a2, acc, -);
@@ -1822,7 +1652,7 @@ std::shared_ptr<Object> fn_sub_num(const std::shared_ptr<List> args, Env& env) {
     return acc;
 }
 
-std::shared_ptr<Object> fn_mul_num(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_mul_num(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2, acc;
     EVAL_TWO_ARG("*", args, env, a1, a2);
     APPLY_ARITH_OP_TO_NUMS(a1, a2, acc, *);
@@ -1836,7 +1666,7 @@ std::shared_ptr<Object> fn_mul_num(const std::shared_ptr<List> args, Env& env) {
     return acc;
 }
 
-std::shared_ptr<Object> fn_div_num(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_div_num(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2, acc;
     EVAL_TWO_ARG("/", args, env, a1, a2);
     APPLY_ARITH_OP_TO_NUMS(a1, a2, acc, /);
@@ -1850,126 +1680,156 @@ std::shared_ptr<Object> fn_div_num(const std::shared_ptr<List> args, Env& env) {
     return acc;
 }
 
-#define APPLY_COMP_OP_TO_STRS(name, a1, a2, op, ignore_upper_lower) \
-    do { \
-        if (a1->kind() == ObjectKind::String && a2->kind() == ObjectKind::String) { \
-            auto l = std::static_pointer_cast<String>(a1)->get_string(); \
-            auto r = std::static_pointer_cast<String>(a2)->get_string(); \
-            if ((ignore_upper_lower)) { \
-                std::transform(l.begin(), l.end(), l.begin(), tolower); \
-                std::transform(r.begin(), r.end(), r.begin(), tolower); \
-            } \
-            if (l op r) { \
-                return GLOBAL_T; \
-            } else { \
-                return GLOBAL_NIL; \
-            } \
-        } else { \
-            std::ostringstream ss; \
-            ss << "arguments of " << name << " must be string"; \
-            throw EvalException(ss.str()); \
-        } \
+std::shared_ptr<Object> fn_string_nth(const std::shared_ptr<List> args,
+                                      Env &env) {
+    std::shared_ptr<Object> a1, a2;
+    EVAL_TWO_ARG("string-nth", args, env, a1, a2);
+    if (a1->kind() != ObjectKind::Integer) {
+        throw EvalException(
+            "first argument of string-nth must be evaluated to integer");
+    }
+    if (a2->kind() != ObjectKind::String) {
+        throw EvalException(
+            "second argument of string-nth must be evaluated to string");
+    }
+    auto index = std::static_pointer_cast<Integer>(a1)->get_integer();
+    auto string = std::static_pointer_cast<String>(a2)->get_string();
+    return std::make_shared<String>(std::string(1, string.at(index)));
+}
+
+#define APPLY_COMP_OP_TO_STRS(name, a1, a2, op, ignore_upper_lower)        \
+    do {                                                                   \
+        if (a1->kind() == ObjectKind::String &&                            \
+            a2->kind() == ObjectKind::String) {                            \
+            auto l = std::static_pointer_cast<String>(a1) -> get_string(); \
+            auto r = std::static_pointer_cast<String>(a2) -> get_string(); \
+            if ((ignore_upper_lower)) {                                    \
+                std::transform(l.begin(), l.end(), l.begin(), tolower);    \
+                std::transform(r.begin(), r.end(), r.begin(), tolower);    \
+            }                                                              \
+            if (l op r) {                                                  \
+                return GLOBAL_T;                                           \
+            } else {                                                       \
+                return GLOBAL_NIL;                                         \
+            }                                                              \
+        } else {                                                           \
+            std::ostringstream ss;                                         \
+            ss << "arguments of " << name << " must be string";            \
+            throw EvalException(ss.str());                                 \
+        }                                                                  \
     } while (0)
 
-std::shared_ptr<Object> fn_eq_str(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_eq_str(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG("string=", args, env, a1, a2);
     APPLY_COMP_OP_TO_STRS("string=", a1, a2, ==, false);
 }
 
-std::shared_ptr<Object> fn_ne_str(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_ne_str(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG("string/=", args, env, a1, a2);
     APPLY_COMP_OP_TO_STRS("string/=", a1, a2, !=, false);
 }
 
-std::shared_ptr<Object> fn_lt_str(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_lt_str(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG("string<", args, env, a1, a2);
     APPLY_COMP_OP_TO_STRS("string<", a1, a2, <, false);
 }
 
-std::shared_ptr<Object> fn_gt_str(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_gt_str(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG("string>", args, env, a1, a2);
     APPLY_COMP_OP_TO_STRS("string>", a1, a2, >, false);
 }
 
-std::shared_ptr<Object> fn_le_str(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_le_str(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG("string<=", args, env, a1, a2);
     APPLY_COMP_OP_TO_STRS("string<=", a1, a2, <=, false);
 }
 
-std::shared_ptr<Object> fn_ge_str(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_ge_str(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG("string>=", args, env, a1, a2);
     APPLY_COMP_OP_TO_STRS("string>=", a1, a2, >=, false);
 }
 
-std::shared_ptr<Object> fn_equal_str(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_equal_str(const std::shared_ptr<List> args,
+                                     Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG("string>=", args, env, a1, a2);
     APPLY_COMP_OP_TO_STRS("string>=", a1, a2, >=, true);
 }
 
-std::shared_ptr<Object> fn_write(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_write(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("write", args, env, a1);
     if (a1->kind() == ObjectKind::String) {
-        std::cout << '"' << std::static_pointer_cast<String>(a1)->get_string() << '"';
+        std::cout << '"' << std::static_pointer_cast<String>(a1)->get_string()
+                  << '"';
     } else if (a1->kind() == ObjectKind::Integer) {
         std::cout << std::static_pointer_cast<Integer>(a1)->get_integer();
     } else if (a1->kind() == ObjectKind::Number) {
-        std::cout << std::to_string(std::static_pointer_cast<Number>(a1)->get_number());
+        std::cout << std::to_string(
+            std::static_pointer_cast<Number>(a1)->get_number());
     } else {
         throw EvalException("write can only accpet string, integer or number");
     }
     return a1;
 }
 
-std::shared_ptr<Object> fn_write_line(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_write_line(const std::shared_ptr<List> args,
+                                      Env &env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("write-line", args, env, a1);
     if (a1->kind() == ObjectKind::String) {
-        std::cout << std::static_pointer_cast<String>(a1)->get_string() << std::endl;
+        std::cout << std::static_pointer_cast<String>(a1)->get_string()
+                  << std::endl;
     } else {
         throw EvalException("write-line can only accpet string");
     }
     return a1;
 }
 
-std::shared_ptr<Object> fn_print(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_print(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("write", args, env, a1);
     if (a1->kind() == ObjectKind::String) {
-        std::cout << std::endl << '"' << std::static_pointer_cast<String>(a1)->get_string() << '"';
+        std::cout << std::endl
+                  << '"' << std::static_pointer_cast<String>(a1)->get_string()
+                  << '"';
     } else if (a1->kind() == ObjectKind::Integer) {
-        std::cout << std::endl << std::static_pointer_cast<Integer>(a1)->get_integer();
+        std::cout << std::endl
+                  << std::static_pointer_cast<Integer>(a1)->get_integer();
     } else if (a1->kind() == ObjectKind::Number) {
-        std::cout << std::endl << std::to_string(std::static_pointer_cast<Number>(a1)->get_number());
+        std::cout << std::endl
+                  << std::to_string(
+                         std::static_pointer_cast<Number>(a1)->get_number());
     } else {
         throw EvalException("print can only accpet string, integer or number");
     }
     return a1;
 }
 
-std::shared_ptr<Object> fn_prin1(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_prin1(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("write", args, env, a1);
     if (a1->kind() == ObjectKind::String) {
-        std::cout << '"' << std::static_pointer_cast<String>(a1)->get_string() << '"';
+        std::cout << '"' << std::static_pointer_cast<String>(a1)->get_string()
+                  << '"';
     } else if (a1->kind() == ObjectKind::Integer) {
         std::cout << std::static_pointer_cast<Integer>(a1)->get_integer();
     } else if (a1->kind() == ObjectKind::Number) {
-        std::cout << std::to_string(std::static_pointer_cast<Number>(a1)->get_number());
+        std::cout << std::to_string(
+            std::static_pointer_cast<Number>(a1)->get_number());
     } else {
         throw EvalException("prin1 can only accpet string, integer or number");
     }
     return a1;
 }
 
-std::shared_ptr<Object> fn_princ(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_princ(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("write", args, env, a1);
     if (a1->kind() == ObjectKind::String) {
@@ -1977,14 +1837,16 @@ std::shared_ptr<Object> fn_princ(const std::shared_ptr<List> args, Env& env) {
     } else if (a1->kind() == ObjectKind::Integer) {
         std::cout << std::static_pointer_cast<Integer>(a1)->get_integer();
     } else if (a1->kind() == ObjectKind::Number) {
-        std::cout << std::to_string(std::static_pointer_cast<Number>(a1)->get_number());
+        std::cout << std::to_string(
+            std::static_pointer_cast<Number>(a1)->get_number());
     } else {
         throw EvalException("princ can only accpet string, integer or number");
     }
     return a1;
 }
 
-std::shared_ptr<Object> fn_read_str(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_read_str(const std::shared_ptr<List> args,
+                                    Env &env) {
     if (args != nullptr) {
         throw EvalException("too many arguments for reads");
     }
@@ -1997,7 +1859,8 @@ std::shared_ptr<Object> fn_read_str(const std::shared_ptr<List> args, Env& env) 
     }
 }
 
-std::shared_ptr<Object> fn_read_int(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_read_int(const std::shared_ptr<List> args,
+                                    Env &env) {
     if (args != nullptr) {
         throw EvalException("too many arguments for readi");
     }
@@ -2010,7 +1873,8 @@ std::shared_ptr<Object> fn_read_int(const std::shared_ptr<List> args, Env& env) 
     }
 }
 
-std::shared_ptr<Object> fn_read_num(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_read_num(const std::shared_ptr<List> args,
+                                    Env &env) {
     if (args != nullptr) {
         throw EvalException("too many arguments for readn");
     }
@@ -2023,7 +1887,7 @@ std::shared_ptr<Object> fn_read_num(const std::shared_ptr<List> args, Env& env) 
     }
 }
 
-std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1;
     TAKE_ONE_ARG("lambda", args, a1);
 
@@ -2052,13 +1916,14 @@ std::shared_ptr<Object> fn_lambda(const std::shared_ptr<List> args, Env& env) {
             lambda_body = args->get_next()->to_list();
         }
 
-        return std::make_shared<Function>(std::list<std::shared_ptr<Symbol>>(), lambda_body);
+        return std::make_shared<Function>(std::list<std::shared_ptr<Symbol>>(),
+                                          lambda_body);
     } else {
         throw EvalException("first argument of lambda must be list");
     }
 }
 
-std::shared_ptr<Object> fn_macro(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_macro(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1;
     TAKE_ONE_ARG("macro", args, a1);
 
@@ -2087,13 +1952,14 @@ std::shared_ptr<Object> fn_macro(const std::shared_ptr<List> args, Env& env) {
             macro_body = args->get_next()->to_list();
         }
 
-        return std::make_shared<Macro>(std::list<std::shared_ptr<Symbol>>(), macro_body);
+        return std::make_shared<Macro>(std::list<std::shared_ptr<Symbol>>(),
+                                       macro_body);
     } else {
         throw EvalException("first argument of macro must be list");
     }
 }
 
-std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1, a2;
     EVAL_JUST_TWO_ARG("set", args, env, a1, a2);
 
@@ -2105,7 +1971,8 @@ std::shared_ptr<Object> fn_set(const std::shared_ptr<List> args, Env& env) {
     return a2;
 }
 
-std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args,
+                                         Env &env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("int-to-string", args, env, a1);
 
@@ -2117,7 +1984,8 @@ std::shared_ptr<Object> fn_int_to_string(const std::shared_ptr<List> args, Env& 
     }
 }
 
-std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args,
+                                         Env &env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("num-to-string", args, env, a1);
 
@@ -2129,13 +1997,13 @@ std::shared_ptr<Object> fn_num_to_string(const std::shared_ptr<List> args, Env& 
     }
 }
 
-std::shared_ptr<Object> fn_debug(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_debug(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("debug", args, env, a1);
     return std::make_shared<String>(a1->debug());
 }
 
-std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env &env) {
     std::shared_ptr<Object> a1;
     EVAL_JUST_ONE_ARG("type-of", args, env, a1);
 
@@ -2177,7 +2045,7 @@ std::shared_ptr<Object> fn_type_of(const std::shared_ptr<List> args, Env& env) {
     }
 }
 
-std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env &env) {
     std::string acc;
     std::shared_ptr<Object> a1, a2;
     EVAL_TWO_ARG("concat", args, env, a1, a2);
@@ -2201,17 +2069,20 @@ std::shared_ptr<Object> fn_concat(const std::shared_ptr<List> args, Env& env) {
     return std::make_shared<String>(acc);
 }
 
-std::shared_ptr<Object> fn_macroexpand(const std::shared_ptr<List> args, Env& env) {
+std::shared_ptr<Object> fn_macroexpand(const std::shared_ptr<List> args,
+                                       Env &env) {
     std::shared_ptr<Object> a1;
     EVAL_ONE_ARG("macroexpand", args, env, a1);
 
     if (a1->kind() != ObjectKind::List) {
-        throw EvalException("first argument of macroexpand must be evaluated to list");
+        throw EvalException(
+            "first argument of macroexpand must be evaluated to list");
     }
 
     auto list = std::static_pointer_cast<List>(a1);
     if (list->get_value()->kind() == ObjectKind::Symbol) {
-        auto macro_name = std::static_pointer_cast<Symbol>(list->get_value())->get_symbol();
+        auto macro_name =
+            std::static_pointer_cast<Symbol>(list->get_value())->get_symbol();
         auto maybe_macro = env.get_obj(macro_name);
         if (maybe_macro->kind() != ObjectKind::Macro) {
             throw EvalException("first element of list must hold macro");
@@ -2236,12 +2107,13 @@ std::shared_ptr<Object> fn_macroexpand(const std::shared_ptr<List> args, Env& en
     }
 }
 
-std::istream& prompt(std::istream& is, const std::string& msg, std::string& input) {
+std::istream &prompt(std::istream &is, const std::string &msg,
+                     std::string &input) {
     std::cout << msg << " " << std::flush;
     return std::getline(is, input);
 }
 
-void interpreter(Env& env) {
+void interpreter(Env &env) {
     std::string input;
     std::cout << "press CTRL-D to exit from this interpreter" << std::endl;
     int line = 1;
@@ -2249,23 +2121,23 @@ void interpreter(Env& env) {
         try {
             auto tokens = lex(input);
             auto objs = parse(tokens);
-            for (const auto& obj : objs) {
+            for (const auto &obj : objs) {
                 std::cout << eval(obj, env)->debug() << std::endl;
             }
             line++;
-        } catch (std::exception& e) {
+        } catch (std::exception &e) {
             std::cerr << e.what() << std::endl;
         }
         std::cout << std::endl;
     }
 }
 
-void run(std::string input, Env& env) {
+void run(std::string input, Env &env) {
     try {
-        for (const auto& obj : parse(lex(input))) {
+        for (const auto &obj : parse(lex(input))) {
             eval(obj, env);
         }
-    } catch (std::exception& e) {
+    } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
     }
 }
@@ -2289,6 +2161,7 @@ Env default_env() {
     env.set_obj("-", std::make_shared<FuncPtr>(fn_sub_num));
     env.set_obj("*", std::make_shared<FuncPtr>(fn_mul_num));
     env.set_obj("/", std::make_shared<FuncPtr>(fn_div_num));
+    env.set_obj("string-nth", std::make_shared<FuncPtr>(fn_string_nth));
     env.set_obj("string=", std::make_shared<FuncPtr>(fn_eq_str));
     env.set_obj("string/=", std::make_shared<FuncPtr>(fn_ne_str));
     env.set_obj("string<", std::make_shared<FuncPtr>(fn_lt_str));
@@ -2316,9 +2189,14 @@ Env default_env() {
     env.set_obj("T", GLOBAL_T);
     env.set_obj("NIL", GLOBAL_NIL);
 
-    run("(set 'setq (macro (name value) `(set ',name ,value)))" ,env);
-    run("(setq defmacro (macro (name args &body body) `(setq ,name (macro ,args ,@body))))", env);
-    run("(defmacro defun (name args &body body) `(setq ,name (lambda ,args ,@body)))", env);
+    run("(set 'setq (macro (name value) `(set ',name ,value)))", env);
+    run("(setq defmacro (macro (name args &body body) `(setq ,name (macro "
+        ",args "
+        ",@body))))",
+        env);
+    run("(defmacro defun (name args &body body) `(setq ,name (lambda ,args "
+        ",@body)))",
+        env);
 
     return env;
 }
@@ -2331,7 +2209,8 @@ int main(int argc, char *argv[]) {
             std::cerr << "faild to open file " << argv[1] << std::endl;
             std::exit(1);
         }
-        std::string content((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+        std::string content((std::istreambuf_iterator<char>(ifs)),
+                            std::istreambuf_iterator<char>());
         run(content, env);
     } else {
         interpreter(env);
